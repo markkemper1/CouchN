@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	
+	<Target Name="Push" BeforeTargets="Build"   >
+
+    <PropertyGroup>
+      <NodeExe>$(ProjectDir)node.exe</NodeExe>
+      <Command>$(NodeExe) BuildJson.js</Command>
+    </PropertyGroup>
+    
+    <Exec Command="cmd.exe /c &quot;$(Command)&quot;" StandardOutputImportance="High"  />
+
+	</Target>
+
+</Project>

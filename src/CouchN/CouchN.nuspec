@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>$id$</id>
+        <version>$version$</version>
+        <authors>$author$</authors>
+        <owners>$author$</owners>
+        <projectUrl>http://github.com/markkemper1/CouchN</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <summary>
+          A simple library for interacting with couch db.
+          Supports tracking of documents and automatic updating of a javascript based design documents.
+
+          And a design view query helper for e.g.
+            session.Design(&quot;test&quot;).ViewDocs&lt;TestDoc&gt;(&quot;test&quot;, track: true);
+            
+          which whould run the _design/test/view/test view with include_docs=true and map then to the TestDoc object.
+          The objects would also be tracked to allow save / delete operations.
+          
+        </summary>
+        <description>
+          Sample usages:
+          
+          using (var session = new TemporarySession())
+          {
+                var testObject = new TestDoc { Text = "hello world" };
+
+                var result = session.Get&lt;TestDoc&gt;(&quot;test&quot;);
+
+                Assert.That(result, Is.Null);
+
+                var info = session.Save(testObject, &quot;test&quot;);
+
+                testObject.Text = &quot;hello world chagned&quot;;
+
+                session.Save(testObject);
+
+                testObject.Text = &quot;hello world changed&quot;;
+
+                info = session.Save(testObject);
+
+                testObject.Text = &quot;hello world changed 2&quot;;
+
+                session.Save(testObject, info);
+
+                session.Delete(testObject);
+
+                result = session.Get&lt;TestDoc&gt;(&quot;test&quot;);
+
+          Assert.That(result, Is.Null);
+          }
+
+          also supports some design document helpers (views and updates)
+          e.g.
+            session.Design(&quot;test&quot;).ViewDocs&lt;TestDoc&gt;(&quot;test&quot;, track: true);
+            string result = session.Design(&quot;test&quot;).Update&lt;TestDoc, string>(&quot;test&quot;, testObject);
+          
+        </description>
+    </metadata>
+</package>
