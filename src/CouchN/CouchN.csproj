@@ -63,6 +63,7 @@
     <Compile Include="SimpleDesignDocument.cs" />
     <Compile Include="TemporaryDatabaseSession.cs" />
     <Compile Include="TheCouch.cs" />
+    <Compile Include="Users.cs" />
     <Compile Include="ViewQuery.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <id>$id$</id>
+        <version>$version$</version>
+        <authors>$author$</authors>
+        <owners>$author$</owners>
+        <projectUrl>http://github.com/markkemper1/CouchN</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <summary>
+          A library for creating a couch app design document. (to be used with CouchN but you could hook it up standalone)
+
+          The code uses node.js to run any &quot;*_design.js&quot; documents in the project and convert them to &quot;*_design.json&quot; (where * is the name of your design doc)
+
+        </summary>
+        <description>
+
+          A library for creating a couch app design document. (to be used with CouchN but you could hook it up standalone)
+
+          The code uses node.js to run any &quot;*_design.js&quot; documents in the project and convert them to &quot;*_design.json&quot; (where * is the name of your design doc)
+
+          Once the json document has been created you should make it an embedded resource for the project. Then you can have your main project update design documents in couch with a one liner.
+
+          ** NOTE ** you need to include the CreateDesignDoc.targets into your projects *.proj file. Just open it in nodepad and enter this line near the botton:
+
+          &lt;Import Project=&quot;CreateDesignDocs.targets&quot; /&gt;
+
+          TheCouch.SetupDatabaseAndDesignDocuments&lt;DesignDocuments&gt;(&quot;MyDb&quot;, &quot;http://thecouchdb:5987&quot;);
+
+          This will create a new database &quot;MyDb&quot; if it doesn't exist and then upload the design documents embbed in the assembly which contans the &quot;DesignDocuments&quot; type.
+
+        </description>
+    </metadata>
+  <files>
+    <file src="node_modules\couchapp\main.js" target="content\node_modules\couchapp\main.js" />
+    <file src="node_modules\couchapp\mimetypes.js" target="content\node_modules\couchapp\mimetypes.js" />
+    <file src="node_modules\couchapp\package.json" target="content\node_modules\couchapp\package.json" />
+    <file src="node_modules\couchapp\README.md" target="content\node_modules\couchapp\README.md" />
+    <file src="node_modules\couchapp\node_modules\watch\main.js" target="content\node_modules\couchapp\node_modules\watch\main.js" />
+    <file src="node_modules\couchapp\node_modules\watch\LICENSE" target="content\node_modules\couchapp\node_modules\watch\LICENSE" />
+    <file src="node_modules\couchapp\node_modules\watch\package.json" target="content\node_modules\couchapp\node_modules\watch\package.json" />
+    <file src="node_modules\couchapp\node_modules\watch\readme.mkd" target="content\node_modules\couchapp\node_modules\watch\readme.mkd" />
+    
+    <file src="node_modules\watch\main.js" target="content\node_modules\watch\main.js" />
+    <file src="node_modules\watch\LICENSE" target="content\node_modules\watch\LICENSE" />
+    <file src="node_modules\watch\package.json" target="content\node_modules\watch\package.json" />
+    <file src="node_modules\watch\readme.mkd" target="content\node_modules\watch\readme.mkd" />
+
+    <file src="tasks\tasks_design.js" target="content\tasks\tasks_design.js" />
+    
+    <file src="CreateDesignDocs.targets" target="content\CreateDesignDocs.targets" />
+    <file src="DesignDocuments.cs.pp" target="content" />
+    <file src="node.exe" target="content\node.exe" />
+
+  </files>
+</package>

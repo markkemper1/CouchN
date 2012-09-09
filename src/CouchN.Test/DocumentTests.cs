@@ -1,5 +1,6 @@
 ﻿using System;
 using NUnit.Framework;
+using Newtonsoft.Json.Linq;
 
 namespace CouchN.Test
 {
@@ -79,6 +80,26 @@ namespace CouchN.Test
                 var testObjectFromDb = session.Documents.Get<TestDocUnique>("hello world");
 
                 Assert.NotNull(testObjectFromDb);
+            }
+        }
+
+        [Test]
+        public void should_be_able_to_use_a_custom_documet_type()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUnique>();
+                config.TypeName = "testdocunique";
+
+                var testObject = new TestDocUnique { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUnique>(testObject);
+
+                Console.Write(result.Id);
+
+                var testObjectFromDb = session.Documents.Get<JObject>(result.Id);
+
+                Assert.AreEqual("testdocunique", testObjectFromDb["type"].ToString());
             }
         }
     }

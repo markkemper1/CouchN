@@ -13,6 +13,7 @@ namespace CouchN
         private Dictionary<string, DesginDocuments> designDocuments = new Dictionary<string, DesginDocuments>();
         private Documents documents;
         private readonly RestClient client;
+        private readonly Users users;
 
         public CouchSession(Uri baseUri, string db)
         {
@@ -25,6 +26,7 @@ namespace CouchN
             this.db = db;
             client = new RestClient(baseUri.ToString());
             documents = new Documents(this);
+            users = new Users(this);
         }
 
         public Databases Db
@@ -40,6 +42,11 @@ namespace CouchN
         {
             get { return documents; }
         }
+
+        /// <summary>
+        /// Helper methods for the users database
+        /// </summary>
+        public Users Users { get { return this.users; } }
 
         /// <summary>
         ///     Set the default datbase

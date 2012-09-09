@@ -23,17 +23,13 @@ namespace CouchN
         public static void SetConfiguration<T>(DocumentConfig<T> config)
         {
             var type = typeof (T);
-
-            ////keep existing document as other types may have mapped to it
-            //var newconfig = (DocumentConfig<T>)(configuration.ContainsKey(type) ?
-            //    configuration[type] : config);
-
-            //newconfig.CreateId = config.CreateId;
-            //newconfig.SetInfo = config.SetInfo;
-            //newconfig.TypeName = config.TypeName;
-            //newconfig.UniqueConstraints = config.UniqueConstraints;
-
             configuration[type] = config;
+        }
+
+        public static DocumentConfig<T> GetConfiguration<T>()
+        {
+            var type = typeof(T);
+            return (DocumentConfig<T>) (configuration.ContainsKey(type) ? configuration[type] : null);
         }
 
         public static DocumentConfig<T> Configure<T>(
@@ -47,7 +43,7 @@ namespace CouchN
                                  TypeName = name, 
                                  SetInfo = setInfo, 
                                  ResolveId =  resolveId,
-                                 CreateId = createId
+                                 CreateId = createId,
                              };
            
             SetConfiguration(config);
@@ -159,6 +155,7 @@ namespace CouchN
 
             var config = GetOrCreateConfig<T>();
 
+            if(jsonObject["type"] == null)
                 jsonObject["type"] = config.TypeName;
 
             if (info == null)
@@ -297,10 +294,6 @@ namespace CouchN
             public string Rev { get; set; }
         }
 
-        public DocumentConfig<T> GetConfiguration<T>()
-        {
-            return GetOrCreateConfig<T>();
-        }
     }
 
     public class UniqueConstraint

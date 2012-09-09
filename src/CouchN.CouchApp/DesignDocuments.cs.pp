@@ -1,4 +1,4 @@
-﻿namespace CouchN.CouchApp
+﻿namespace $rootnamespace$
 {
     public class DesignDocuments
     {
