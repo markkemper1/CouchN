@@ -26,9 +26,10 @@
   <Target Name="NugetPush" AfterTargets="CreateNuget" Condition="$(NugetPush) != ''  " >
     
     <ItemGroup>
-      <PackageFile Include=" $(OutDir)$(ProjectName)*.nupkg" />
+      <PackageFile Include="$(OutDir)$(ProjectName)*.nupkg" />
     </ItemGroup>
-    
+
+    <Message Text="COMMAND: $(NuGetExePath) push %(PackageFile.Identity) -- $(OutDir)$(ProjectName)*.nupkg" Importance="high" />
     <Exec Command="$(NuGetExePath) push %(PackageFile.Identity)"  ContinueOnError="true"/>
     
   </Target>
