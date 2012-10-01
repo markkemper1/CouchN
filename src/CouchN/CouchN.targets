@@ -3,20 +3,15 @@
 
   <Target Name="CreateNuget"  AfterTargets="Build"  Condition="$(Configuration) == 'Release' " >
 
-
-
     <ItemGroup>
       <PackageFile Include=" $(OutDir)$(ProjectName)*.nupkg" />
     </ItemGroup>
 
-    <Delete Files="@(PackageFile)" ContinueOnError="true" />
-    
-
     <Message Text="Nuget Packing: $(NuGetExePath) pack $(ProjectPath) -Build -OutputDirectory $(TargetDir) "
               Importance="high" />
+    
     <Exec Command="$(NuGetExePath) pack $(ProjectPath) -OutputDirectory $(TargetDir) -Properties Configuration=Release"/>
 
-    
 
     <ItemGroup>
       <PackageFile Include=" $(OutDir)$(ProjectName)*.nupkg" />
@@ -28,14 +23,24 @@
     
   </Target>
 
+
+  <Target Name="CleanNuget" AfterTargets="Clean" >
+    <ItemGroup>
+      <PackageFile Include=" $(OutDir)$(ProjectName)*.nupkg" />
+    </ItemGroup>
+
+    <Delete Files="@(PackageFile)"  />
+
+  </Target>
+  
   <Target Name="NugetPush" AfterTargets="CreateNuget" Condition="$(NugetPush) != ''  " >
 
     <ItemGroup>
       <PackageFile Include=" $(OutDir)$(ProjectName)*.nupkg" />
     </ItemGroup>
-    
+
     <Exec Command="$(NuGetExePath) push %(PackageFile.Identity)"  ContinueOnError="true"/>
-    
+
   </Target>
 
 
