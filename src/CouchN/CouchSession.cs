@@ -25,6 +25,14 @@ namespace CouchN
             this.baseUri = baseUri;
             this.db = db;
             client = new RestClient(baseUri.ToString());
+
+            if (!String.IsNullOrWhiteSpace(this.baseUri.UserInfo))
+            {
+                var username = this.baseUri.UserInfo.Substring(0, this.baseUri.UserInfo.IndexOf(':'));
+                var password = this.baseUri.UserInfo.Substring(this.baseUri.UserInfo.IndexOf(':') + 1);
+                client.Authenticator = new HttpBasicAuthenticator(username, password);
+            }
+
             documents = new Documents(this);
             users = new Users(this);
         }

@@ -49,6 +49,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CloudantTest.cs" />
     <Compile Include="DesignDocumentTests.cs" />
     <Compile Include="CreateDatabaseTest.cs" />
     <Compile Include="DocumentTests.cs" />

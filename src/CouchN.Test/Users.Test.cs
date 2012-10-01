@@ -64,6 +64,28 @@ namespace CouchN.Test
                 Assert.IsNotNull(fromDb);
             }
         }
+
+        [Test]
+        public void should_be_able_to_set_password_and_authenticate_2()
+        {
+            using (var session = new TemporarySession())
+            {
+                var user = new User()
+                {
+                    Name = Guid.NewGuid().ToString(),
+                };
+
+                var password = Guid.NewGuid().ToString();
+
+                session.Users.Save(user);
+
+                session.Users.SetPasword(user.Name, password);
+
+                var result = session.Users.Authenticate<User>(user.Name, password);
+
+                Assert.IsTrue(result.OK);
+            }
+        }
     }
 
 

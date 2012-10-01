@@ -27,7 +27,7 @@ namespace CouchN
         public long DocDeleteCount { get; set; }
 
         [DataMember(Name="update_seq")]
-        public long UpdateSeq { get; set; }
+        public string UpdateSeq { get; set; }
 
         [DataMember(Name="purge_seq")]
         public long PurgeSeq { get; set; }

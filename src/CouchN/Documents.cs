@@ -65,7 +65,9 @@ namespace CouchN
             if (resultContent == null)
                 return default(T);
 
-            var result = resultContent.DeserializeObject<T>();
+            var json = resultContent.DeserializeObject<JObject>();
+
+            var result = json.ToObject<T>();
 
             var document = resultContent.DeserializeObject<GetResponse>();
 

@@ -104,6 +104,11 @@ namespace CouchN.Test
         }
     }
 
+    public class TestConvention
+    {
+        public string Name { get; set; }
+    }
+
     public class TestDocUnique
     {
         public string Name { get; set; }
