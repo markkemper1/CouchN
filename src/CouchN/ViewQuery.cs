@@ -40,7 +40,7 @@ namespace CouchN
         /// If stale=ok is set, CouchDB will not refresh the view even if it is stale, the benefit is a an improved query latency. If stale=update_after is set, CouchDB will update the view after the stale result is returned. update_after was added in version 1.1.0.
         /// </summary>
         [DataMember(Name = "stale")]
-        public bool? Stale { get; set; }
+        public string Stale { get; set; }
 
         /// <summary>
         /// [Default: false] change the direction of search
@@ -102,14 +102,17 @@ namespace CouchN
             if (EndKEyDocId != null) query["endkey_docid"] = EndKEyDocId;
             if (Limit != null) query["limit"] = Limit;
             if (Stale != null) query["stale"] = Stale;
-            if (Descending != null) query["descending"] = Descending;
+            if (Descending.HasValue) query["descending"] = Descending.Value ? "true" : "false";
             if (Skip != null) query["skip"] = Skip;
-            if (Group != null) query["group"] = Group;
+            
+            if (Group.HasValue) query["group"] = Group.HasValue ? "true" : "false";
+
             if (GroupLevel != null) query["group_level"] = GroupLevel;
-            if (Reduce != null) query["reduce"] = Reduce;
-            if (IncludeDocs != null) query["include_docs"] = IncludeDocs;
-            if (InclusiveEnd != null) query["inclusive_end"] = InclusiveEnd;
-            if (UpdateSeq != null) query["update_seq"] = UpdateSeq;
+
+            if (Reduce.HasValue) query["reduce"] = Reduce.HasValue ? "true" : "false"; ;
+            if (IncludeDocs.HasValue) query["include_docs"] = IncludeDocs.HasValue ? "true" : "false"; ;
+            if (InclusiveEnd.HasValue) query["inclusive_end"] = InclusiveEnd.HasValue ? "true" : "false"; ;
+            if (UpdateSeq.HasValue) query["update_seq"] = UpdateSeq.HasValue ? "true" : "false"; ;
             return query;
         }
     }
