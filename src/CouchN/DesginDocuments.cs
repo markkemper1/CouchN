@@ -86,7 +86,7 @@ namespace CouchN
                 {
                     var config = Documents.GetConfiguration<DOC>();
 
-                    if(config.SetInfo != null)
+                    if(config != null && config.SetInfo != null)
                         config.SetInfo(new Documents.DocumentInfo(final.Rows[i].Id, document["_rev"].ToString()), typedDocument);
                 }
 
@@ -153,7 +153,7 @@ namespace CouchN
                 public string Id { get; set; }
 
                 [DataMember(Name = "key")]
-                public string Key { get; set; }
+                public JObject Key { get; set; }
             }
         }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using Newtonsoft.Json.Linq;
 
 namespace CouchN
 {
@@ -7,13 +8,13 @@ namespace CouchN
     public class ViewQuery
     {
         [DataMember(Name = "key")]
-        public string Key { get; set; }
+        public JObject Key { get; set; }
 
         [DataMember(Name = "keys")]
-        public string[] Keys { get; set; }
+        public JObject[] Keys { get; set; }
 
         [DataMember(Name = "startkey")]
-        public string StartKey { get; set; }
+        public JObject StartKey { get; set; }
 
         /// <summary>
         /// document id to start with (to allow pagination for duplicate startkeys)
@@ -22,7 +23,7 @@ namespace CouchN
         public string StartKeyDocId { get; set; }
 
         [DataMember(Name = "endkey")]
-        public string EndKey { get; set; }
+        public JObject EndKey { get; set; }
 
         /// <summary>
         /// last document id to include in the output (to allow pagination for duplicate endkeys)

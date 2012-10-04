@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System;
+using NUnit.Framework;
 
 namespace CouchN.Test
 {
@@ -62,7 +63,7 @@ function(doc,req)
 
                 session.Design("test").Put(designDoc);
 
-                var testObject = new TestDoc { Text = "hello world" };
+                var testObject = new TestDoc {Text = "hello world"};
                 var results = session.Design("test").Update<TestDoc, string>("test", testObject);
 
                 Assert.That(results, Is.EqualTo("New World"));
@@ -71,6 +72,29 @@ function(doc,req)
 
                 Assert.That(results, Is.EqualTo("Existing World"));
             }
+        }
+
+        [Test, Explicit]
+        public void x()
+        {
+            Documents.Configure<Port>((info, port) => port.Id = info.Id).UniqueConstraint = p => "--" + p.Slug;
+
+            using (var session = new CouchSession(new Uri("http://127.0.0.1:5984"), "cruiseme"))
+            {
+
+                var results = session.Design("ports").ViewDocs<Port>("by_slug");
+            
+            }
+        }
+
+        public class Port
+        {
+            public string Id { get; set; }
+
+            public string Name { get; set; }
+
+            public string Slug { get; set; }
+
         }
 
         public class TestDoc

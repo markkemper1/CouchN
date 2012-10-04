@@ -22,5 +22,6 @@ namespace CouchN.Test
                 Assert.That(db, Is.Null);
             }
         }
+
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
+using System.Web;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -234,6 +235,7 @@ namespace CouchN
             {
                 id = config.CreateId(document);
             }
+
             var request = session.PutRequest(id);
 
             object payload = document;

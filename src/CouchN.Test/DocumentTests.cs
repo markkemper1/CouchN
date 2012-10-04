@@ -102,6 +102,42 @@ namespace CouchN.Test
                 Assert.AreEqual("testdocunique", testObjectFromDb["type"].ToString());
             }
         }
+
+
+        [Test, Ignore]
+        public void should_allow_keys_to_contain_slashes()
+        {
+            using (var session = new TemporarySession())
+            {
+                var testObject1 = new TestDoc { _id="test/1", Text = "hello world" };
+
+                var result1 = session.Get<TestDoc>("test/1");
+
+                Assert.That(result1, Is.Null);
+
+                session.Save(testObject1, testObject1._id);
+
+                var result2 = session.Get<TestDoc>("test/1");
+
+                Assert.That(result2, Is.Not.Null);
+                Assert.That(result2._id == "Test/1");
+
+
+                var testObject2 = new TestDoc { _id = "test/2", Text = "hello world" };
+
+                var result3 = session.Get<TestDoc>("test/2");
+
+                Assert.That(result3, Is.Null);
+
+                session.Save(testObject2, testObject2._id);
+
+                var result4 = session.Get<TestDoc>("test/2");
+
+                Assert.That(result4, Is.Not.Null);
+                Assert.That(result4._id == "Test/2");
+               
+            }
+        }
     }
 
     public class TestConvention
