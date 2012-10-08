@@ -269,7 +269,7 @@ namespace CouchN
 
             var response = session.Client.Execute(request);
 
-            if (response.StatusCode != HttpStatusCode.Created)
+            if (response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
                 throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
 
             var result = response.Content.DeserializeObject<DocumentResponse>();
