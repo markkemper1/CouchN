@@ -8,13 +8,13 @@ namespace CouchN
     public class ViewQuery
     {
         [DataMember(Name = "key")]
-        public JObject Key { get; set; }
+        public object Key { get; set; }
 
         [DataMember(Name = "keys")]
-        public JObject[] Keys { get; set; }
+        public object Keys { get; set; }
 
         [DataMember(Name = "startkey")]
-        public JObject StartKey { get; set; }
+        public object StartKey { get; set; }
 
         /// <summary>
         /// document id to start with (to allow pagination for duplicate startkeys)
@@ -23,7 +23,7 @@ namespace CouchN
         public string StartKeyDocId { get; set; }
 
         [DataMember(Name = "endkey")]
-        public JObject EndKey { get; set; }
+        public object EndKey { get; set; }
 
         /// <summary>
         /// last document id to include in the output (to allow pagination for duplicate endkeys)

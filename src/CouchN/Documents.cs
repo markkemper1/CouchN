@@ -122,6 +122,20 @@ namespace CouchN
             }
             var tag = tracking[document];
 
+            var config = GetOrCreateConfig<T>();
+
+            if (config.UniqueConstraint != null)
+            {
+                var key = config.UniqueConstraint(document);
+                var uniqueKey = "unique__" + config.TypeName + "__" + key;
+                var existing = session.Get<UniqueConstraint>(uniqueKey);
+
+                if (existing != null)
+                {
+                    session.Delete(existing._id, existing._rev);
+                }
+            }
+
             Delete(tag.Id, tag.Revision);
         }
 
@@ -218,15 +232,24 @@ namespace CouchN
                 var key = config.UniqueConstraint(document);
                 var uniqueKey = "unique__" + config.TypeName + "__" + key;
                 var existing = session.Get<UniqueConstraint>(uniqueKey);
+
+                if(existing != null )
+                {
+                    var existingDoc = session.Get<JsonObject>(existing.HolderId);
+
+                    if (existingDoc != null && existing.HolderId != id)
+                        throw new ArgumentException("Unique constraint violated. Document: " + existing.HolderId + " is aready holder the key: " + uniqueKey);
+
+                    existing.HolderId = id;
+                    Save(existing);
+                }
+
                 if(existing == null)
                 {
                     existing = new UniqueConstraint() { _id = uniqueKey, HolderId = id};
                     var constraintInfo = Put<UniqueConstraint>(existing, uniqueKey, null);
                     existing._id = constraintInfo.Id;
                 }
-
-                if(existing.HolderId != id)
-                    throw new ArgumentException("Unique constraint violated. Document: " + existing.HolderId + " is aready holder the key: " + uniqueKey);
             }
 
 

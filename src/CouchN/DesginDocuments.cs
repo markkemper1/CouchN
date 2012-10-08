@@ -153,7 +153,7 @@ namespace CouchN
                 public string Id { get; set; }
 
                 [DataMember(Name = "key")]
-                public JObject Key { get; set; }
+                public object Key { get; set; }
             }
         }
 

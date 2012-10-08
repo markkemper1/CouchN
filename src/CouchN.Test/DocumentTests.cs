@@ -62,6 +62,32 @@ namespace CouchN.Test
             }
         }
 
+
+        [Test]
+        public void should_be_able_to_delete_a_documents_and_add_another_with_same_key()
+        {
+            using (var session = new TemporarySession())
+            {
+                Documents.Configure<TestDocUnique>()
+                    .UniqueConstraint = unique => unique.Name;
+
+                var testObject = new TestDocUnique { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUnique>(testObject);
+
+                Console.Write(result.Id);
+
+                session.Delete(testObject);
+
+                var conflictDOc = new TestDocUnique { Name = "hello world" };
+
+                var result2 = session.Documents.Save(conflictDOc);
+
+                Assert.AreNotEqual(result.Id, result2.Id);
+            }
+        }
+
+
         [Test]
         public void should_be_able_to_use_a_slight_of_hand_with_my_types_id()
         {
