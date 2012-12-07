@@ -291,7 +291,11 @@ namespace CouchN
 
                 var existingAttachments = payload["_attachments"] != null
                                               ? payload["_attachments"].ToObject<AttachmentList>()
-                                              : new AttachmentList();
+                                              : (
+                                                    oldDocument["_attachments"] != null
+                                                    ? oldDocument["_attachments"].ToObject<AttachmentList>()
+                                                    : new AttachmentList()
+                                                 );
 
                 string versionNo = "Version-" + revision.Split('-')[0] + "-" +
                                    DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss");

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using Newtonsoft.Json.Linq;
@@ -190,11 +191,16 @@ namespace CouchN.Test
             using (var session = new TemporarySession())
             {
                 var config = Documents.Configure<TestDocUniqueVersioned>();
-                config.KeepHistory = true;
 
-                var testObject = new TestDocUniqueVersioned { Name = "hello world" };
+                var testObject = new TestDocUniqueVersioned {Name = "hello world"};
 
                 var result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+                config.KeepHistory = true;
+
+                testObject = new TestDocUniqueVersioned {Name = "hello world"};
+
+                result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
 
                 testObject.Name = "Hello World 2";
 
@@ -208,6 +214,50 @@ namespace CouchN.Test
                 testObject.Name = "Rock Out";
 
                 result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+
+                testObject = session.Documents.Get<TestDocUniqueVersioned>(result.Id);
+
+                Assert.That(testObject._Attachments, Is.Not.Null);
+                Assert.That(testObject._Attachments.Count, Is.EqualTo(2));
+            }
+        }
+
+        [Test]
+            public void should_save_a_document_version_history_when_enabled_and_document_doesnt_have_attachment_property()
+            {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUnique>();
+
+                var testObject = new TestDocUnique { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUnique>(testObject);
+
+                config.KeepHistory = true;
+
+                testObject = new TestDocUnique { Name = "hello world" };
+
+                result = session.Documents.Save<TestDocUnique>(testObject);
+
+                testObject.Name = "Hello World 2";
+
+                result = session.Documents.Save<TestDocUnique>(testObject);
+
+                var jObject = session.Documents.Get<JObject>(result.Id);
+
+                Assert.That(jObject["_attachments"], Is.Not.Null);
+                Assert.That(jObject["_attachments"].Children().Count(), Is.EqualTo(1));
+
+                testObject.Name = "Rock Out";
+
+                result = session.Documents.Save<TestDocUnique>(testObject);
+
+                jObject = session.Documents.Get<JObject>(result.Id);
+
+                Assert.That(jObject["_attachments"], Is.Not.Null);
+                Assert.That(jObject["_attachments"].Children().Count(), Is.EqualTo(2));
+
             }
         }
 
