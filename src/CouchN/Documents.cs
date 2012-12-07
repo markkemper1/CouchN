@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
+using System.Text;
 using System.Web;
 using Newtonsoft.Json.Linq;
 using RestSharp;
@@ -14,7 +15,7 @@ namespace CouchN
         private readonly CouchSession session;
         private readonly Dictionary<object, DocumentInfo> tracking = new Dictionary<object, DocumentInfo>();
 
-        private static Dictionary<Type, object> configuration = new Dictionary<Type, object>(); 
+        private static Dictionary<Type, object> configuration = new Dictionary<Type, object>();
 
         public Documents(CouchSession session)
         {
@@ -23,30 +24,30 @@ namespace CouchN
 
         public static void SetConfiguration<T>(DocumentConfig<T> config)
         {
-            var type = typeof (T);
+            var type = typeof(T);
             configuration[type] = config;
         }
 
         public static DocumentConfig<T> GetConfiguration<T>()
         {
             var type = typeof(T);
-            return (DocumentConfig<T>) (configuration.ContainsKey(type) ? configuration[type] : null);
+            return (DocumentConfig<T>)(configuration.ContainsKey(type) ? configuration[type] : null);
         }
 
         public static DocumentConfig<T> Configure<T>(
-            Action<DocumentInfo, T> setInfo = null, 
-            Func<T, string> createId=null,
-            Func<string,string> resolveId=null ,
+            Action<DocumentInfo, T> setInfo = null,
+            Func<T, string> createId = null,
+            Func<string, string> resolveId = null,
             string name = null)
         {
             var config = new DocumentConfig<T>
                              {
-                                 TypeName = name, 
-                                 SetInfo = setInfo, 
-                                 ResolveId =  resolveId,
+                                 TypeName = name,
+                                 SetInfo = setInfo,
+                                 ResolveId = resolveId,
                                  CreateId = createId,
                              };
-           
+
             SetConfiguration(config);
 
             return config;
@@ -72,17 +73,17 @@ namespace CouchN
 
             var document = resultContent.DeserializeObject<GetResponse>();
 
-            var info =  new DocumentInfo(document.Id, document.Rev);            
-            tracking[(object) result] = info;
-           
-            
-            if(config.SetInfo != null)
+            var info = new DocumentInfo(document.Id, document.Rev);
+            tracking[(object)result] = info;
+
+
+            if (config.SetInfo != null)
                 config.SetInfo(info, result);
 
             return result;
         }
 
-    
+
         public DocumentInfo Save<T>(T document, DocumentInfo info)
         {
             return Put(document, info.Id, info.Revision);
@@ -114,7 +115,7 @@ namespace CouchN
             return Put(document, tag.Id, tag.Revision);
         }
 
-        public void Delete<T>(T document)
+        public void Delete<T>(T document, bool soft = true)
         {
             if (!tracking.ContainsKey(document))
             {
@@ -136,7 +137,15 @@ namespace CouchN
                 }
             }
 
-            Delete(tag.Id, tag.Revision);
+            if (!soft)
+            {
+                Delete(tag.Id, tag.Revision);
+            }
+
+            var jDocument = JObject.FromObject(document);
+            jDocument["_deleted"] = true;
+
+            this.Save(jDocument, tag.Id, tag.Revision);
         }
 
         public void Delete(string id, string revision)
@@ -166,22 +175,29 @@ namespace CouchN
             return AddInfoToObject<T>(document, GetInfo(document));
         }
 
-        public object AddInfoToObject<T>(T document, DocumentInfo info)
+        public JObject AddInfoToObject<T>(T document, DocumentInfo info)
         {
             var jsonObject = JObject.Parse(document.Serialize());
 
             var config = GetOrCreateConfig<T>();
 
-            if(jsonObject["type"] == null)
+            if (jsonObject["type"] == null)
                 jsonObject["type"] = config.TypeName;
 
             if (info == null)
                 return jsonObject;
 
             jsonObject["_id"] = info.Id;
-    
-            if(info.Revision != null)
+
+            if (info.Revision != null)
                 jsonObject["_rev"] = info.Revision;
+
+            var attachments = jsonObject["_Attachments"];
+            if (attachments != null)
+            {
+                jsonObject.Remove("_Attachments");
+                jsonObject["_attachments"] = attachments;
+            }
 
             return jsonObject;
         }
@@ -219,7 +235,7 @@ namespace CouchN
      *      if not holder , then throw exception
      *  
      *  When creating new doc, see above
-     */ 
+     */
 
         private DocumentInfo Put<T>(T document, string id, string revision)
         {
@@ -227,13 +243,13 @@ namespace CouchN
 
             var config = GetOrCreateConfig<T>();
 
-            if(config.UniqueConstraint != null)
+            if (config.UniqueConstraint != null)
             {
                 var key = config.UniqueConstraint(document);
                 var uniqueKey = "unique__" + config.TypeName + "__" + key;
                 var existing = session.Get<UniqueConstraint>(uniqueKey);
 
-                if(existing != null )
+                if (existing != null)
                 {
                     var existingDoc = session.Get<JsonObject>(existing.HolderId);
 
@@ -244,9 +260,9 @@ namespace CouchN
                     Save(existing);
                 }
 
-                if(existing == null)
+                if (existing == null)
                 {
-                    existing = new UniqueConstraint() { _id = uniqueKey, HolderId = id};
+                    existing = new UniqueConstraint() { _id = uniqueKey, HolderId = id };
                     var constraintInfo = Put<UniqueConstraint>(existing, uniqueKey, null);
                     existing._id = constraintInfo.Id;
                 }
@@ -259,30 +275,146 @@ namespace CouchN
                 id = config.CreateId(document);
             }
 
+            JObject oldDocument = null;
+            if (revision != null && config.KeepHistory)
+            {
+                oldDocument = this.Get<JObject>(id);
+            }
+
+
+
+            JObject payload = this.AddInfoToObject(document, new DocumentInfo(id, revision));
+
+            string responseContent = null;
+            if (oldDocument != null && config.KeepHistory)
+            {
+
+                var existingAttachments = payload["_attachments"] != null
+                                              ? payload["_attachments"].ToObject<AttachmentList>()
+                                              : new AttachmentList();
+
+                string versionNo = "Version-" + revision.Split('-')[0] + "-" +
+                                   DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss");
+
+                string newAttachmentContent = oldDocument.ToString();
+                existingAttachments.Add(versionNo, new Attachment()
+                                                       {
+                                                           ContentType = "application/json",
+                                                           Data = Convert.ToBase64String(Encoding.ASCII.GetBytes(newAttachmentContent)),
+                                                       });
+
+                payload["_attachments"] = JObject.FromObject(existingAttachments);
+                //// var helper = MuiltpartRelatedHelper.Create(new Uri("http://localhost:8888"));//session.GetUri(id, null));
+                // var helper = MuiltpartRelatedHelper.Create(session.GetUri(id, null));
+                //// helper.DebugOn();
+                // helper.Request.Credentials = session.Credential;
+
+                // helper.AddPart(payload.ToString());
+                // helper.AddPart(newAttachmentContent, null);
+
+                // responseContent = helper.Execute();
+
+                //var newVersion = this.PutAttachment(id, info.Revision,
+                //                                    "Version-" + revision.Split('-')[0] + "-" +
+                //                                    DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss"), "text/json",
+                //                                    Encoding.UTF8.GetBytes(oldDocument.ToString()));
+            }
             var request = session.PutRequest(id);
-
-            object payload = document;
-
-            payload = this.AddInfoToObject(document, new DocumentInfo(id, revision));
-
             request.AddJson(payload);
 
             var response = session.Client.Execute(request);
 
-            if (response.StatusCode != HttpStatusCode.Created && response.StatusCode != HttpStatusCode.Accepted)
+            if (response.StatusCode != HttpStatusCode.Created
+                && response.StatusCode != HttpStatusCode.Accepted
+                && response.StatusCode != HttpStatusCode.OK
+                )
                 throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
 
-            var result = response.Content.DeserializeObject<DocumentResponse>();
+            responseContent = response.Content;
+
+            var result = responseContent.DeserializeObject<DocumentResponse>();
 
             var info = new DocumentInfo(result.Id, result.Rev);
 
 
             tracking[(object)document] = info;
 
-
-
             if (config.SetInfo != null)
                 config.SetInfo(info, document);
+
+
+            //if (oldDocument != null && config.KeepHistory)
+            //{
+
+            //    var newVersion = this.PutAttachment(id, info.Revision,
+            //                                        "Version-" + revision.Split('-')[0] + "-" +
+            //                                        DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss"), "text/json",
+            //                                        Encoding.UTF8.GetBytes(oldDocument.ToString()));
+            //    return newVersion;
+            //}
+
+
+            return info;
+        }
+
+        public DocumentInfo PutAttachment(string id, string revision, string attachmentName, string contentType, byte[] bytes)
+        {
+            var endPoint = this.session.GetUri(id + "/" + attachmentName, new Dictionary<string, object>()
+                                                                            {
+                                                                                {"rev", revision}
+                                                                            });
+            using (var client = new WebClient())
+            {
+                client.Headers.Add("Content-Type", contentType);
+                var responseByte = client.UploadData(endPoint, "PUT", bytes);
+
+                var response = Encoding.UTF8.GetString(responseByte);
+
+                var result = response.DeserializeObject<DocumentResponse>();
+
+                var info = new DocumentInfo(result.Id, result.Rev);
+
+                return info;
+            }
+        }
+
+        public byte[] GetAttachment(string id, string attachmentName)
+        {
+            var endPoint = this.session.GetUri(id + "/" + attachmentName, null);
+            using (var client = new WebClient())
+            {
+                try
+                {
+                    var responseByte = client.DownloadData(endPoint);
+                    return responseByte;
+                }
+                catch (WebException ex)
+                {
+                    if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
+                        return null;
+                    throw;
+                }
+            }
+        }
+
+        public DocumentInfo DeleteAttachment(string id, string revision, string attachmentName)
+        {
+            var request = this.session.DeleteRequest(id + "/" + attachmentName, new Dictionary<string, object>()
+                                                               {
+                                                                   {"rev", revision}
+                                                               });
+
+            var response = session.Client.Execute(request);
+
+            if (response.StatusCode != HttpStatusCode.Created
+                && response.StatusCode != HttpStatusCode.Accepted
+                && response.StatusCode != HttpStatusCode.OK
+                )
+                throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
+
+            var result = response.Content.DeserializeObject<DocumentResponse>();
+
+            var info = new DocumentInfo(result.Id, result.Rev);
 
             return info;
         }
@@ -321,6 +453,7 @@ namespace CouchN
             public string Rev { get; set; }
         }
 
+
     }
 
     public class UniqueConstraint
@@ -351,6 +484,8 @@ namespace CouchN
         ///     If you need more then either maintain them your self OR use a RDBMS.
         /// </summary>
         public Func<T, string> UniqueConstraint { get; set; }
+
+        public bool KeepHistory { get; set; }
 
         public static DocumentConfig<T> Default()
         {

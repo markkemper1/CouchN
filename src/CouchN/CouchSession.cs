@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text;
 using RestSharp;
+using RestSharp.Contrib;
 
 namespace CouchN
 {
@@ -30,12 +32,15 @@ namespace CouchN
             {
                 var username = this.baseUri.UserInfo.Substring(0, this.baseUri.UserInfo.IndexOf(':'));
                 var password = this.baseUri.UserInfo.Substring(this.baseUri.UserInfo.IndexOf(':') + 1);
+                Credential = new NetworkCredential(username, password);
                 client.Authenticator = new HttpBasicAuthenticator(username, password);
             }
 
             documents = new Documents(this);
             users = new Users(this);
         }
+
+        public NetworkCredential Credential { get; set; }
 
         public Databases Db
         {
@@ -78,6 +83,32 @@ namespace CouchN
             return DatabaseName + (String.IsNullOrWhiteSpace(path) ? null : "/" + path);
         }
 
+        public Uri GetUri(string path, Dictionary<string, object> query)
+        {
+            var pathAndQuery = Url(path) + ToQueryString(query);
+            return new Uri(baseUri, pathAndQuery);
+        }
+
+        private string ToQueryString(IEnumerable<KeyValuePair<string, object>> query)
+        {
+
+            if (query == null) return null;
+
+
+            var sb = new StringBuilder();
+
+            
+            bool first = true;
+            foreach (var kv in query)
+            {
+                sb.Append(first ? '?' : '&');
+                sb.AppendFormat("{0}={1}", HttpUtility.UrlEncode(kv.Key), HttpUtility.UrlEncode(kv.Value.ToString()));
+                first = false;
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>
         ///     Shortcut for Documents.Get
         ///     Returns the document from couch based on the id
@@ -100,7 +131,7 @@ namespace CouchN
         /// <returns></returns>
         public Documents.DocumentInfo Save<T>(T doc, string id = null, string revision = null)
         {
-            if(id != null)
+            if (id != null)
                 return this.Documents.Save(doc, id, revision);
 
             return this.Documents.Save(doc);
@@ -120,7 +151,7 @@ namespace CouchN
         {
             this.Documents.Delete(doc);
         }
-        
+
         /// <summary>
         ///     Deletes a tracked document based on the id and revision
         /// </summary>
@@ -198,7 +229,7 @@ namespace CouchN
             var request = DeleteRequest(path, query);
             var response = client.Execute(request);
 
-            if (response.StatusCode != HttpStatusCode.OK && 
+            if (response.StatusCode != HttpStatusCode.OK &&
                 response.StatusCode != HttpStatusCode.NotFound)
                 throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
 

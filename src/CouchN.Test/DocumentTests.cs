@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using NUnit.Framework;
 using Newtonsoft.Json.Linq;
 
@@ -130,6 +131,121 @@ namespace CouchN.Test
         }
 
 
+
+        [Test]
+        public void should_be_able_to_soft_delete_a_document()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUnique>();
+                config.TypeName = "testdocunique";
+
+                var testObject = new TestDocUnique { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUnique>(testObject);
+
+                Console.Write(result.Id);
+
+                session.Documents.Delete(testObject);
+
+                Console.WriteLine("x");
+            }
+        }
+
+        [Test]
+        public void should_save_a_document_attachment()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUnique>();
+                config.TypeName = "testdocunique";
+
+                var testObject = new TestDocUnique { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUnique>(testObject);
+
+                var data64String = "VGhpcyBpcyBhIGJhc2U2NCBlbmNvZGVkIHRleHQ=";
+                var bytes = Convert.FromBase64String(data64String);
+                string attachmentName = "testAttachment";
+
+                result = session.Documents.PutAttachment(result.Id,result.Revision, attachmentName, "text/plain", bytes);
+
+                var bytesStored = session.Documents.GetAttachment(result.Id, attachmentName);
+
+                var doc = Convert.ToBase64String(bytesStored);
+
+                Console.WriteLine(Encoding.UTF8.GetString(bytesStored));
+
+                Assert.That(doc, Is.EqualTo(data64String));
+
+                session.Documents.DeleteAttachment(result.Id, result.Revision, attachmentName);
+
+                Assert.That(session.Documents.GetAttachment(result.Id, attachmentName), Is.Null);
+            }
+        }
+
+        [Test]
+        public void should_save_a_document_version_history_when_enabled()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUniqueVersioned>();
+                config.KeepHistory = true;
+
+                var testObject = new TestDocUniqueVersioned { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+                testObject.Name = "Hello World 2";
+
+                result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+                testObject = session.Documents.Get<TestDocUniqueVersioned>(result.Id);
+
+                Assert.That(testObject._Attachments, Is.Not.Null);
+                Assert.That(testObject._Attachments.Count, Is.EqualTo(1));
+
+                testObject.Name = "Rock Out";
+
+                result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+            }
+        }
+
+        [Test]
+        public void json_debug()
+        {
+            var json = @"{
+  ""content_type"": ""text/json"",
+  ""revpos"": 3,
+  ""digest"": ""md5-1haOuxvSBg01LzTCRv+FCw=="",
+  ""length"": 161,
+  ""stub"": true
+}";
+
+            var item = JObject.Parse(json);
+        }
+
+        //[Test]
+        //public void should_be_able_to_soft_delete_a_document()
+        //{
+        //    using (var session = new TemporarySession())
+        //    {
+        //        var config = Documents.Configure<TestDocUnique>();
+        //        config.TypeName = "testdocunique";
+
+        //        var testObject = new TestDocUnique { Name = "hello world" };
+
+        //        var result = session.Documents.Save<TestDocUnique>(testObject);
+
+        //        Console.Write(result.Id);
+
+        //        session.Documents.Delete(testObject);
+
+        //        Console.WriteLine("x");
+        //    }
+        //}
+
+
         [Test, Ignore]
         public void should_allow_keys_to_contain_slashes()
         {
@@ -174,6 +290,12 @@ namespace CouchN.Test
     public class TestDocUnique
     {
         public string Name { get; set; }
+    }
+
+    public class TestDocUniqueVersioned 
+    {
+        public string Name { get; set; }
+        public AttachmentList _Attachments { get; set; }
     }
 
     public class TestDoc
