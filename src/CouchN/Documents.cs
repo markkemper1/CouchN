@@ -304,7 +304,7 @@ namespace CouchN
                 existingAttachments.Add(versionNo, new Attachment()
                                                        {
                                                            ContentType = "application/json",
-                                                           Data = Convert.ToBase64String(Encoding.ASCII.GetBytes(newAttachmentContent)),
+                                                           Data = Convert.ToBase64String(Encoding.UTF8.GetBytes(newAttachmentContent)),
                                                        });
 
                 payload["_attachments"] = JObject.FromObject(existingAttachments);
