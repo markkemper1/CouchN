@@ -19,10 +19,14 @@ namespace CouchN
 
         public void Create()
         {
-            var response = session.Put("");
-
-            if (response != 201)
-                throw new ApplicationException("Error creating database, does it already exist? Status code: " + response);
+            try
+            {
+                var response = session.Put("");
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException("Error creating database, does it already exist? Status code: ", ex);
+            }
         }
 
         public void Delete()
