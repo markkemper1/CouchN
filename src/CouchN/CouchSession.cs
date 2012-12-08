@@ -218,7 +218,8 @@ namespace CouchN
             var response = client.Execute(request);
 
             if (response.StatusCode != HttpStatusCode.OK &&
-              response.StatusCode != HttpStatusCode.Created)
+              response.StatusCode != HttpStatusCode.Created &&
+                response.StatusCode != HttpStatusCode.Accepted)
                 throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
 
             return (int)response.StatusCode;
