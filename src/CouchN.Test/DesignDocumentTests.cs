@@ -71,6 +71,12 @@ function(doc,req)
                 results = session.Design("test").Update<TestDoc, string>("test", testObject);
 
                 Assert.That(results, Is.EqualTo("Existing World"));
+
+                var orginalInfo = session.Documents.GetInfo(testObject);
+
+                results = session.Design("test").Update<TestDoc, string>("test", new TestDoc() { Text = "brand new" }, orginalInfo.Id);
+
+                Assert.That(results, Is.EqualTo("Existing World"));
             }
         }
 

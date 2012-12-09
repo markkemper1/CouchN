@@ -106,7 +106,7 @@ namespace CouchN
             object payload = Documents.AddInfoToObject(document, info);
 
             //If we aren't tracking and no key is supplied then create a key
-            key = (key == null && info == null) ? this.session.GetUuid() : info.Id;
+            key = key ?? (info == null ? this.session.GetUuid() : info.Id);
 
             var path = basePath + "/_update/" + handler + "/" + key;
 
