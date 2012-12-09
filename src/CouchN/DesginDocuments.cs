@@ -119,8 +119,9 @@ namespace CouchN
             if (response.StatusCode == HttpStatusCode.OK ||
                 response.StatusCode == HttpStatusCode.Created)
             {
-                var rev = response.Headers.First(x => x.Name == "X-Couch-Update-NewRev").Value;
-                Documents.Attach(document, key, rev.ToString());
+                var revHeader = response.Headers.FirstOrDefault(x => x.Name == "X-Couch-Update-NewRev");
+                if(revHeader != null)
+                    Documents.Attach(document, key, revHeader.Value.ToString());
 
                 return response.Content.DeserializeObject<RESPONSE>();
             }

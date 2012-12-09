@@ -1,5 +1,6 @@
 ﻿using System;
 using NUnit.Framework;
+using Newtonsoft.Json.Linq;
 
 namespace CouchN.Test
 {
@@ -11,7 +12,7 @@ namespace CouchN.Test
         {
             using (var session = new TemporarySession())
             {
-                var testObject = new TestDoc {Text = "hello world"};
+                var testObject = new TestDoc { Text = "hello world" };
 
                 var info1 = session.Documents.Save(testObject, "test1");
                 var info2 = session.Documents.Save(testObject, "test2");
@@ -63,7 +64,7 @@ function(doc,req)
 
                 session.Design("test").Put(designDoc);
 
-                var testObject = new TestDoc {Text = "hello world"};
+                var testObject = new TestDoc { Text = "hello world" };
                 var results = session.Design("test").Update<TestDoc, string>("test", testObject);
 
                 Assert.That(results, Is.EqualTo("New World"));
@@ -89,7 +90,37 @@ function(doc,req)
             {
 
                 var results = session.Design("ports").ViewDocs<Port>("by_slug");
-            
+
+            }
+        }
+
+        [Test]
+        public void test_update_handlers()
+        {
+            using (var session = new TemporarySession())
+            {
+                var designDoc = new SimpleDesignDocument();
+                designDoc.Updates["test"] = @"
+function(doc,req)
+{
+   
+    var resp = {
+        'headers': {
+            'Content-Type': 'application/json'
+        },
+        'body': toJSON( JSON.parse(req.body) )
+    };
+    
+    return [doc, resp];
+
+}".Trim();
+
+                session.Design("test").Put(designDoc);
+
+                var response = session.Design("test").Update<TestDoc, JObject>("test", new TestDoc() { Text = "brand new" }, Guid.NewGuid().ToString());
+
+                Console.WriteLine(response);
+
             }
         }
 
@@ -109,5 +140,5 @@ function(doc,req)
         }
     }
 
-    
+
 }
