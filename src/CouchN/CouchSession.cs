@@ -17,6 +17,7 @@ namespace CouchN
         private BulkDocuments bulkDocuments;
         private readonly RestClient client;
         private readonly Users users;
+        private readonly string defaultDb;
 
         public CouchSession(Uri baseUri, string db)
         {
@@ -27,6 +28,7 @@ namespace CouchN
             if (db == null) throw new ArgumentNullException("db");
             this.baseUri = baseUri;
             this.db = db;
+            this.defaultDb = db;
             client = new RestClient(baseUri.ToString());
 
             if (!String.IsNullOrWhiteSpace(this.baseUri.UserInfo))
@@ -71,6 +73,28 @@ namespace CouchN
         public void Use(string db)
         {
             this.db = db;
+        }
+
+        public void UseDefault()
+        {
+            this.db = defaultDb;
+        }
+
+        Stack<string> databases = new Stack<string>(); 
+
+        public void PushDatabase()
+        {
+            this.databases.Push(this.DatabaseName);
+        }
+
+        public void PopAndUseDatabase()
+        {
+            this.Use(this.databases.Pop());
+        }
+
+        public string DefaultDatabase
+        {
+            get { return defaultDb; }
         }
 
         /// <summary>
@@ -121,7 +145,10 @@ namespace CouchN
         /// <returns></returns>
         public T Get<T>(string id)
         {
-            return this.Documents.Get<T>(id);
+            using (SwitchFor<T>())
+            {
+                return this.Documents.Get<T>(id);
+            }
         }
 
         /// <summary>
@@ -134,10 +161,24 @@ namespace CouchN
         /// <returns></returns>
         public Documents.DocumentInfo Save<T>(T doc, string id = null, string revision = null)
         {
-            if (id != null)
-                return this.Documents.Save(doc, id, revision);
+            using (SwitchFor<T>())
+            {
+                if (id != null)
+                    return this.Documents.Save(doc, id, revision);
 
-            return this.Documents.Save(doc);
+                return this.Documents.Save(doc);
+            }
+        }
+
+        public SwitchDatabase SwitchFor<T>()
+        {
+            var documentConfig = Documents.GetConfiguration<T>();
+            return Switch(documentConfig == null || documentConfig.Database == null ? this.DatabaseName:  documentConfig.Database);
+        }
+
+        public SwitchDatabase Switch(string databaseName)
+        {
+            return new SwitchDatabase(this, databaseName);
         }
 
         public Documents.DocumentInfo Save<T>(T doc, Documents.DocumentInfo info)

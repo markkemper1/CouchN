@@ -21,11 +21,11 @@ namespace CouchN
         /// </summary>
         public T Get<T>(string username)
         {
-            var db = session.DatabaseName;
-            session.Use("_users");
-            var result = session.Get<T>("org.couchdb.user:" + username);
-            session.Use(db);
-            return result;
+            using (session.Switch("_users"))
+            {
+                var result = session.Get<T>("org.couchdb.user:" + username);
+                return result;
+            }
         }
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace CouchN
         {
             var jsonObject = JObject.Parse(doc.Serialize());
 
-            if (jsonObject["roles"] == null  && jsonObject["Roles"] != null)
+            if (jsonObject["roles"] == null && jsonObject["Roles"] != null)
             {
                 jsonObject["roles"] = jsonObject["Roles"];
             }
@@ -46,7 +46,7 @@ namespace CouchN
                 jsonObject["roles"] = roles;
             }
 
-            if(jsonObject["name"] == null && jsonObject["Name"] != null)
+            if (jsonObject["name"] == null && jsonObject["Name"] != null)
             {
                 jsonObject["name"] = jsonObject["Name"].ToString();
                 jsonObject.Remove("Name");
@@ -59,29 +59,32 @@ namespace CouchN
 
             jsonObject["type"] = "user";
 
-            var db = session.DatabaseName;
-            session.Use("_users");
+            using (session.Switch("_users"))
+            {
 
-            var info = session.Documents.GetInfo(doc);
+                var info = session.Documents.GetInfo(doc);
 
-            var result = session.Save(jsonObject, 
-                "org.couchdb.user:" + jsonObject["name"], 
-                info != null ? info.Revision : null);
+                var result = session.Save(jsonObject,
+                                          "org.couchdb.user:" + jsonObject["name"],
+                                          info != null ? info.Revision : null);
 
-            session.Use(db);
-            return result;
+                return result;
+            }
         }
 
         public void SetPasword(string username, string password)
         {
-            var user = this.Get<JObject>(username);
+            using (session.Switch("_users"))
+            {
+                var user = this.Get<JObject>(username);
 
-            if(user == null)
-                throw new ArgumentException("The user with username: " + username + " could not be found");
+                if (user == null)
+                    throw new ArgumentException("The user with username: " + username + " could not be found");
 
-            user["password"] = password;
+                user["password"] = password;
 
-            Save(user);
+                Save(user);
+            }
         }
 
         /// <summary>
@@ -89,10 +92,10 @@ namespace CouchN
         /// </summary>
         public void Delete(string username)
         {
-            var db = session.DatabaseName;
-            session.Use("_users");
-            session.Delete(username);
-            session.Use(db);
+            using (session.Switch("_users"))
+            {
+                session.Delete(username);
+            }
         }
 
 
@@ -108,8 +111,8 @@ namespace CouchN
 
             var response = session.Client.Execute(request);
 
-            if(response.StatusCode != HttpStatusCode.OK)
-                return new AuthenticationResponse<T>{ OK = false};
+            if (response.StatusCode != HttpStatusCode.OK)
+                return new AuthenticationResponse<T> { OK = false };
 
             return new AuthenticationResponse<T>()
                        {

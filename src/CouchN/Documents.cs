@@ -38,7 +38,8 @@ namespace CouchN
             Action<DocumentInfo, T> setInfo = null,
             Func<T, string> createId = null,
             Func<string, string> resolveId = null,
-            string name = null)
+            string name = null, 
+            string database = null)
         {
             var config = new DocumentConfig<T>
                              {
@@ -46,6 +47,7 @@ namespace CouchN
                                  SetInfo = setInfo,
                                  ResolveId = resolveId,
                                  CreateId = createId,
+                                 Database = database
                              };
 
             SetConfiguration(config);
@@ -86,66 +88,79 @@ namespace CouchN
 
         public DocumentInfo Save<T>(T document, DocumentInfo info)
         {
-            return Put(document, info.Id, info.Revision);
+            using (session.SwitchFor<T>())
+            {
+                return Put(document, info.Id, info.Revision);
+            }
         }
 
         public DocumentInfo Save<T>(T document, string id, string revision = null)
         {
-            if (id == null) throw new ArgumentNullException("id");
-
-            if (revision == null && tracking.ContainsKey(document))
+            using (session.SwitchFor<T>())
             {
-                var info = tracking[document];
-                //Set revision if we are trying to update an existing tracked doc
-                revision = info.Id == id ? info.Revision : null;
-            }
+                if (id == null) throw new ArgumentNullException("id");
 
-            return Put(document, id, revision);
+                if (revision == null && tracking.ContainsKey(document))
+                {
+                    var info = tracking[document];
+                    //Set revision if we are trying to update an existing tracked doc
+                    revision = info.Id == id ? info.Revision : null;
+                }
+
+                return Put(document, id, revision);
+            }
         }
 
         public DocumentInfo Save<T>(T document)
         {
-            if (!tracking.ContainsKey(document))
+            using (session.SwitchFor<T>())
             {
-                return Create(document);
+                if (!tracking.ContainsKey(document))
+                {
+                    return Create(document);
+                }
+
+                var tag = tracking[document];
+
+                return Put(document, tag.Id, tag.Revision);
             }
-
-            var tag = tracking[document];
-
-            return Put(document, tag.Id, tag.Revision);
         }
 
         public void Delete<T>(T document, bool soft = true)
         {
-            if (!tracking.ContainsKey(document))
+            using (session.SwitchFor<T>())
             {
-                throw new ApplicationException("The document is not tracked, this method can only be used for tracked documents.");
-            }
-            var tag = tracking[document];
-
-            var config = GetOrCreateConfig<T>();
-
-            if (config.UniqueConstraint != null)
-            {
-                var key = config.UniqueConstraint(document);
-                var uniqueKey = "unique__" + config.TypeName + "__" + key;
-                var existing = session.Get<UniqueConstraint>(uniqueKey);
-
-                if (existing != null)
+                if (!tracking.ContainsKey(document))
                 {
-                    session.Delete(existing._id, existing._rev);
+                    throw new ApplicationException(
+                        "The document is not tracked, this method can only be used for tracked documents.");
                 }
+                var tag = tracking[document];
+
+                var config = GetOrCreateConfig<T>();
+
+                if (config.UniqueConstraint != null)
+                {
+                    var key = config.UniqueConstraint(document);
+                    var uniqueKey = "unique__" + config.TypeName + "__" + key;
+                    var existing = session.Get<UniqueConstraint>(uniqueKey);
+
+                    if (existing != null)
+                    {
+                        session.Delete(existing._id, existing._rev);
+                    }
+                }
+
+                if (!soft)
+                {
+                    Delete(tag.Id, tag.Revision);
+                }
+
+                var jDocument = JObject.FromObject(document);
+                jDocument["_deleted"] = true;
+
+                this.Save(jDocument, tag.Id, tag.Revision);
             }
-
-            if (!soft)
-            {
-                Delete(tag.Id, tag.Revision);
-            }
-
-            var jDocument = JObject.FromObject(document);
-            jDocument["_deleted"] = true;
-
-            this.Save(jDocument, tag.Id, tag.Revision);
         }
 
         public void Delete(string id, string revision)
@@ -200,149 +215,6 @@ namespace CouchN
             }
 
             return jsonObject;
-        }
-
-        private static DocumentConfig<T> GetOrCreateConfig<T>()
-        {
-            var type = typeof(T);
-            if (configuration.ContainsKey(type))
-                return (DocumentConfig<T>)configuration[type];
-
-            lock (configuration)
-            {
-                if (!configuration.ContainsKey(type))
-                    configuration[type] = DocumentConfig<T>.Default();
-            }
-            return (DocumentConfig<T>)configuration[type];
-        }
-
-        private DocumentInfo Create<T>(T document)
-        {
-            var config = GetOrCreateConfig<T>();
-            var id = config.CreateId != null ? config.CreateId(document) : session.GetUuid();
-            return Create<T>(document, id);
-        }
-
-        private DocumentInfo Create<T>(T document, string docId)
-        {
-            if (docId == null) throw new ArgumentNullException("docId");
-            return Put<T>(document, docId, null);
-        }
-        /* Constraints 
-     * 
-     *  When updating, if current holder of constraint is this doc then OK,
-     *      if not current holder, create one,
-     *      if not holder , then throw exception
-     *  
-     *  When creating new doc, see above
-     */
-
-        private DocumentInfo Put<T>(T document, string id, string revision)
-        {
-            if (id == null) throw new ArgumentNullException("id");
-
-            var config = GetOrCreateConfig<T>();
-
-            if (config.UniqueConstraint != null)
-            {
-                var key = config.UniqueConstraint(document);
-                var uniqueKey = "unique__" + config.TypeName + "__" + key;
-                var existing = session.Get<UniqueConstraint>(uniqueKey);
-
-                if (existing != null)
-                {
-                    var existingDoc = session.Get<JsonObject>(existing.HolderId);
-
-                    if (existingDoc != null && existing.HolderId != id)
-                        throw new ArgumentException("Unique constraint violated. Document: " + existing.HolderId + " is aready holder the key: " + uniqueKey);
-
-                    existing.HolderId = id;
-                    Save(existing);
-                }
-
-                if (existing == null)
-                {
-                    existing = new UniqueConstraint() { _id = uniqueKey, HolderId = id };
-                    var constraintInfo = Put<UniqueConstraint>(existing, uniqueKey, null);
-                    existing._id = constraintInfo.Id;
-                }
-            }
-
-
-            //we have a new doc
-            if (revision == null && config.CreateId != null)
-            {
-                id = config.CreateId(document);
-            }
-
-            JObject oldDocument = null;
-            if (revision != null && config.KeepHistory)
-            {
-                oldDocument = this.Get<JObject>(id);
-            }
-
-            JObject payload = this.AddInfoToObject(document, new DocumentInfo(id, revision));
-
-            string responseContent = null;
-            if (oldDocument != null && config.KeepHistory)
-            {
-
-                var existingAttachments = payload["_attachments"] != null
-                                              ? payload["_attachments"].ToObject<AttachmentList>()
-                                              : (
-                                                    oldDocument["_attachments"] != null
-                                                    ? oldDocument["_attachments"].ToObject<AttachmentList>()
-                                                    : new AttachmentList()
-                                                 );
-
-                string versionNo = "Version-" + revision.Split('-')[0] + "-" +
-                                   DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss");
-
-                string newAttachmentContent = oldDocument.ToString();
-                existingAttachments.Add(versionNo, new Attachment()
-                                                       {
-                                                           ContentType = "application/json",
-                                                           Data = Convert.ToBase64String(Encoding.UTF8.GetBytes(newAttachmentContent)),
-                                                       });
-
-                payload["_attachments"] = JObject.FromObject(existingAttachments);
-            }
-            var request = session.PutRequest(id);
-            request.AddJson(payload);
-
-            var response = session.Client.Execute(request);
-
-            if (response.StatusCode != HttpStatusCode.Created
-                && response.StatusCode != HttpStatusCode.Accepted
-                && response.StatusCode != HttpStatusCode.OK
-                )
-                throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
-
-            responseContent = response.Content;
-
-            var result = responseContent.DeserializeObject<DocumentResponse>();
-
-            var info = new DocumentInfo(result.Id, result.Rev);
-
-
-            tracking[(object)document] = info;
-
-            if (config.SetInfo != null)
-                config.SetInfo(info, document);
-
-
-            //if (oldDocument != null && config.KeepHistory)
-            //{
-
-            //    var newVersion = this.PutAttachment(id, info.Revision,
-            //                                        "Version-" + revision.Split('-')[0] + "-" +
-            //                                        DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss"), "text/json",
-            //                                        Encoding.UTF8.GetBytes(oldDocument.ToString()));
-            //    return newVersion;
-            //}
-
-
-            return info;
         }
 
         public DocumentInfo PutAttachment(string id, string revision, string attachmentName, string contentType, byte[] bytes)
@@ -407,6 +279,141 @@ namespace CouchN
             return info;
         }
 
+        private static DocumentConfig<T> GetOrCreateConfig<T>()
+        {
+            var type = typeof(T);
+            if (configuration.ContainsKey(type))
+                return (DocumentConfig<T>)configuration[type];
+
+            lock (configuration)
+            {
+                if (!configuration.ContainsKey(type))
+                    configuration[type] = DocumentConfig<T>.Default();
+            }
+            return (DocumentConfig<T>)configuration[type];
+        }
+
+        private DocumentInfo Create<T>(T document)
+        {
+            var config = GetOrCreateConfig<T>();
+            var id = config.CreateId != null ? config.CreateId(document) : session.GetUuid();
+            return Create<T>(document, id);
+        }
+
+        private DocumentInfo Create<T>(T document, string docId)
+        {
+            if (docId == null) throw new ArgumentNullException("docId");
+            return Put<T>(document, docId, null);
+        }
+
+        private DocumentInfo Put<T>(T document, string id, string revision)
+        {
+            if (id == null) throw new ArgumentNullException("id");
+
+            var config = GetOrCreateConfig<T>();
+
+            if (config.UniqueConstraint != null)
+            {
+                var key = config.UniqueConstraint(document);
+                var uniqueKey = "unique__" + config.TypeName + "__" + key;
+                var existing = session.Get<UniqueConstraint>(uniqueKey);
+
+                if (existing != null)
+                {
+                    var existingDoc = session.Get<JsonObject>(existing.HolderId);
+
+                    if (existingDoc != null && existing.HolderId != id)
+                        throw new ArgumentException("Unique constraint violated. Document: " + existing.HolderId + " is aready holder the key: " + uniqueKey);
+
+                    existing.HolderId = id;
+                    Save(existing);
+                }
+
+                if (existing == null)
+                {
+                    existing = new UniqueConstraint() { _id = uniqueKey, HolderId = id };
+                    var constraintInfo = Put<UniqueConstraint>(existing, uniqueKey, null);
+                    existing._id = constraintInfo.Id;
+                }
+            }
+
+
+            //we have a new doc
+            if (revision == null && config.CreateId != null)
+            {
+                id = config.CreateId(document);
+            }
+
+            JObject oldDocument = null;
+            if (revision != null && config.KeepHistory)
+            {
+                oldDocument = this.Get<JObject>(id);
+            }
+
+            JObject payload = this.AddInfoToObject(document, new DocumentInfo(id, revision));
+
+            string responseContent = null;
+            if (oldDocument != null && config.KeepHistory)
+            {
+
+                var existingAttachments = payload["_attachments"] != null
+                                              ? payload["_attachments"].ToObject<AttachmentList>()
+                                              : (
+                                                    oldDocument["_attachments"] != null
+                                                    ? oldDocument["_attachments"].ToObject<AttachmentList>()
+                                                    : new AttachmentList()
+                                                 );
+
+                string versionNo = "Version-" + revision.Split('-')[0] + "-" +
+                                   DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss");
+
+                string newAttachmentContent = oldDocument.ToString();
+                existingAttachments.Add(versionNo, new Attachment()
+                {
+                    ContentType = "application/json",
+                    Data = Convert.ToBase64String(Encoding.UTF8.GetBytes(newAttachmentContent)),
+                });
+
+                payload["_attachments"] = JObject.FromObject(existingAttachments);
+            }
+            var request = session.PutRequest(id);
+            request.AddJson(payload);
+
+            var response = session.Client.Execute(request);
+
+            if (response.StatusCode != HttpStatusCode.Created
+                && response.StatusCode != HttpStatusCode.Accepted
+                && response.StatusCode != HttpStatusCode.OK
+                )
+                throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
+
+            responseContent = response.Content;
+
+            var result = responseContent.DeserializeObject<DocumentResponse>();
+
+            var info = new DocumentInfo(result.Id, result.Rev);
+
+
+            tracking[(object)document] = info;
+
+            if (config.SetInfo != null)
+                config.SetInfo(info, document);
+
+
+            //if (oldDocument != null && config.KeepHistory)
+            //{
+
+            //    var newVersion = this.PutAttachment(id, info.Revision,
+            //                                        "Version-" + revision.Split('-')[0] + "-" +
+            //                                        DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss"), "text/json",
+            //                                        Encoding.UTF8.GetBytes(oldDocument.ToString()));
+            //    return newVersion;
+            //}
+
+
+            return info;
+        }
+
         public class DocumentInfo
         {
             public string Id;
@@ -440,12 +447,7 @@ namespace CouchN
             [DataMember(Name = "rev")]
             public string Rev { get; set; }
         }
-
-
-        
     }
-
-    
 
     public class UniqueConstraint
     {
@@ -457,6 +459,8 @@ namespace CouchN
     public class DocumentConfig<T>
     {
         private string typeName;
+
+        public string Database { get; set; }
 
         public string TypeName
         {

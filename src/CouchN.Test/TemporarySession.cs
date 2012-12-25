@@ -9,6 +9,7 @@ namespace CouchN.Test
          {
              this.Db.Create();
          }
+
          public override void Dispose()
          {
              this.Db.Delete();

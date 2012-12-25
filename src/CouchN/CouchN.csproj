@@ -66,6 +66,7 @@
     <Compile Include="RestClientExtensions.cs" />
     <Compile Include="SetupHelper.cs" />
     <Compile Include="SimpleDesignDocument.cs" />
+    <Compile Include="SwitchDatabase.cs" />
     <Compile Include="TemporaryDatabaseSession.cs" />
     <Compile Include="TheCouch.cs" />
     <Compile Include="Users.cs" />

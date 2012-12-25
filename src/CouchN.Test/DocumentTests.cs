@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using Newtonsoft.Json.Linq;
+using Shouldly;
 
 namespace CouchN.Test
 {
@@ -273,6 +274,37 @@ namespace CouchN.Test
 }";
 
             var item = JObject.Parse(json);
+        }
+
+        [Test]
+        public void should_use_configuration_database_when_specified()
+        {
+            using (var session = new TemporarySession())
+            {
+                using (var anotherSession = new TemporarySession())
+                {
+                    Documents.Configure<TestDoc>(database: anotherSession.DatabaseName );
+
+                    var testObject = new TestDoc {Text = "hello world"};
+
+                    var info = session.Save(testObject, "test");
+
+                    var fromDb = session.Get<JObject>(info.Id);
+                    fromDb.ShouldBe(null);
+
+
+                    session.DatabaseName.ShouldBe(session.DefaultDatabase);
+
+                    var fromDb2 = session.Get<TestDoc>(info.Id);
+                    fromDb2.ShouldNotBe(null);
+
+                    var info2 = session.Documents.Save(testObject);
+
+                    info2.Id.ShouldBe(info.Id);
+
+                    session.DatabaseName.ShouldBe(session.DefaultDatabase);
+                }
+            }
         }
 
         //[Test]
