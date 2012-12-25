@@ -27,7 +27,7 @@ namespace CouchN
 
             foreach (var doc in designDocs)
             {       
-                using (session.Switch(databaseOverrides.ContainsKey(doc.Key) ? databaseOverrides[doc.Key] : defaultDb)
+                using (session.Switch(databaseOverrides.ContainsKey(doc.Key) ? databaseOverrides[doc.Key] : defaultDb))
                 {
                     session.Design(doc.Key).SetDocument(doc.Value);
                 }
