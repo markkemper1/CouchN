@@ -9,21 +9,28 @@ namespace CouchN
 {
     public static class SetupHelper
     {
-        public static void SetDesignDocumentsFromAssembly<T>(CouchSession session)
+        public static void SetDesignDocumentsFromAssembly<T>(CouchSession session, Dictionary<string, string> databaseOverrides = null)
         {
-            SetDesignDocumentsFromAssembly(session, typeof(T).Assembly);
+            SetDesignDocumentsFromAssembly(session, typeof(T).Assembly, databaseOverrides);
         }
 
-        public static void SetDesignDocumentsFromAssembly(CouchSession session, Assembly assembly)
+        public static void SetDesignDocumentsFromAssembly(CouchSession session, Assembly assembly, Dictionary<string, string> databaseOverrides = null)
         {
+            databaseOverrides = databaseOverrides ?? new Dictionary<string, string>();
+
             var designDocs = GetDesignDocuments(assembly);
 
             if (session.Db.Get() == null)
                 session.Db.Create();
 
+            var defaultDb = session.DatabaseName;
+
             foreach (var doc in designDocs)
-            {
-                session.Design(doc.Key).SetDocument(doc.Value);
+            {       
+                using (session.Switch(databaseOverrides.ContainsKey(doc.Key) ? databaseOverrides[doc.Key] : defaultDb)
+                {
+                    session.Design(doc.Key).SetDocument(doc.Value);
+                }
             }
         }
 
