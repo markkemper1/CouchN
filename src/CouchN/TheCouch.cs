@@ -19,15 +19,15 @@ namespace CouchN
         /// <typeparam name="T"></typeparam>
         /// <param name="dataabseName"></param>
         /// <param name="couchUri"></param>
-        public static void SetupDatabaseAndDesignDocuments<T>(string dataabseName, Uri couchUri)
+        public static void SetupDatabaseAndDesignDocuments<T>(string dataabseName, Uri couchUri, Dictionary<string, string> databaseOverrides = null)
         {
-            SetupDatabaseAndDesignDocuments(dataabseName, couchUri, typeof(T).Assembly);
+            SetupDatabaseAndDesignDocuments(dataabseName, couchUri, typeof(T).Assembly, databaseOverrides);
         }
 
-        public static void SetupDatabaseAndDesignDocuments(string dataabseName, Uri couchUri, Assembly assembly)
+        public static void SetupDatabaseAndDesignDocuments(string dataabseName, Uri couchUri, Assembly assembly, Dictionary<string, string> databaseOverrides = null)
         {
             using (var session = TheCouch.CreateSession(dataabseName, couchUri))
-                SetupHelper.SetDesignDocumentsFromAssembly(session, assembly);
+                SetupHelper.SetDesignDocumentsFromAssembly(session, assembly, databaseOverrides);
         }
 
         
