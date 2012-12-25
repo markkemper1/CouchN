@@ -281,8 +281,6 @@ namespace CouchN
                 oldDocument = this.Get<JObject>(id);
             }
 
-
-
             JObject payload = this.AddInfoToObject(document, new DocumentInfo(id, revision));
 
             string responseContent = null;

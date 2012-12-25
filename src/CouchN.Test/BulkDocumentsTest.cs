@@ -82,5 +82,55 @@ namespace CouchN.Test
 
             }
         }
+
+        [Test]
+        public void should_be_able_insert_typed_documents()
+        {
+            using (var session = new TemporarySession())
+            {
+                var testObject1 = new TestDoc { Text = "hello world 1" };
+                var testObject2 = new TestDoc { Text = "hello world 2" };
+                var testObject3 = new TestDoc { Text = "hello world 3" };
+
+             
+
+                session.Bulk.Update(new[] {testObject1, testObject2, testObject3});
+
+                var result = session.Bulk.All(new ViewQuery() { IncludeDocs = true });
+
+                result.Rows.Length.ShouldBe(3);
+                result.Documents.First().ToObject<TestDoc>().Text.ShouldBe("hello world 1");
+            }
+        }
+
+
+        [Test]
+        public void should_be_able_update_typed_documents()
+        {
+            using (var session = new TemporarySession())
+            {
+                var testObject1 = new TestDoc { Text = "hello world 1" };
+                var testObject2 = new TestDoc { Text = "hello world 2" };
+                var testObject3 = new TestDoc { Text = "hello world 3" };
+
+                session.Documents.Save(testObject1);
+                session.Documents.Save(testObject2);
+                session.Documents.Save(testObject3);
+
+
+                testObject1.Text = "updated 1";
+                testObject2.Text = "updated 2";
+                testObject3.Text = "updated 3";
+
+                session.Bulk.Update(new[] { testObject1, testObject2, testObject3 });
+
+                var result = session.Bulk.All(new ViewQuery() { IncludeDocs = true });
+
+                result.Rows.Length.ShouldBe(3);
+                result.Documents.Skip(0).First().ToObject<TestDoc>().Text.ShouldBe("updated 1");
+                result.Documents.Skip(1).First().ToObject<TestDoc>().Text.ShouldBe("updated 2");
+                result.Documents.Skip(2).First().ToObject<TestDoc>().Text.ShouldBe("updated 3");
+            }
+        }
     }
 }

@@ -47,6 +47,42 @@ namespace CouchN
             return response.Content.DeserializeObject<BulkResponse[]>();
         }
 
+        public BulkResponse[] Update<T>(T[] documents)
+        {
+            var docWrapper = new { docs = documents };
+
+            var infos = new Documents.DocumentInfo[documents.Length];
+
+            for (int i = 0; i < documents.Length; i++)
+            {
+                infos[i] = session.Documents.GetInfo(documents[i]);
+            }
+
+            var newItemCount = infos.Count(x => x == null);
+
+            var newIds = session.GetUuids(newItemCount);
+
+
+            var jsonDocs = new JObject[documents.Length];
+
+            var newIdIndex = 0;
+
+            for (int i = 0; i < documents.Length; i++)
+            {
+                jsonDocs[i] = JObject.FromObject(documents[i]);
+
+                var info = infos[i] ?? new Documents.DocumentInfo(newIds[newIdIndex++], null);
+
+                jsonDocs[i]["_id"] = info.Id;
+                jsonDocs[i]["_rev"] = info.Revision;
+
+                if(jsonDocs[i]["_rev"].Value<string>() == null)
+                    jsonDocs[i].Remove("_rev");
+            }
+
+            return this.Update(jsonDocs);
+        }
+
         public BulkResponse[] Delete(object[] documents)
         {
             var docWrapper = new { docs = JArray.FromObject(documents) };
