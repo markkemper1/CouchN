@@ -46,6 +46,32 @@ namespace CouchN
 
             return response.Content.DeserializeObject<BulkResponse[]>();
         }
+
+        public BulkResponse[] Delete(object[] documents)
+        {
+            var docWrapper = new { docs = JArray.FromObject(documents) };
+
+            foreach (var item in docWrapper.docs)
+            {
+                item["_deleted"] = true;
+            }
+
+            var path = "_bulk_docs";
+
+            var request = session.PostRequest(path);
+
+            request.AddJson(docWrapper);
+
+            var response = this.session.Client.Execute(request);
+
+            if (response.StatusCode != HttpStatusCode.Created
+              && response.StatusCode != HttpStatusCode.Accepted
+              && response.StatusCode != HttpStatusCode.OK
+              )
+                throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
+
+            return response.Content.DeserializeObject<BulkResponse[]>();       
+        }
     }
 
 
