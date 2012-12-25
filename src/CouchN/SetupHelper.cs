@@ -25,6 +25,15 @@ namespace CouchN
 
             var defaultDb = session.DatabaseName;
 
+            foreach (var databaseOverride in databaseOverrides)
+            {
+                using (session.Switch(databaseOverride.Value))
+                {
+                    if (session.Db.Get() == null)
+                        session.Db.Create();
+                }
+            }
+
             foreach (var doc in designDocs)
             {       
                 using (session.Switch(databaseOverrides.ContainsKey(doc.Key) ? databaseOverrides[doc.Key] : defaultDb))
