@@ -16,7 +16,7 @@ namespace CouchN
 
          public static void AddJson<T>(this RestRequest request, T value)
          {
-             request.AddParameter("text/json", value.Serialize(), ParameterType.RequestBody);
+             request.AddParameter("application/json", value.Serialize(), ParameterType.RequestBody);
          }
     }
 }

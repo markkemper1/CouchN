@@ -14,6 +14,7 @@ namespace CouchN
         private string db;
         private Dictionary<string, DesginDocuments> designDocuments = new Dictionary<string, DesginDocuments>();
         private Documents documents;
+        private BulkDocuments bulkDocuments;
         private readonly RestClient client;
         private readonly Users users;
 
@@ -37,6 +38,7 @@ namespace CouchN
             }
 
             documents = new Documents(this);
+            bulkDocuments = new BulkDocuments(this);
             users = new Users(this);
         }
 
@@ -56,6 +58,7 @@ namespace CouchN
             get { return documents; }
         }
 
+        public BulkDocuments Bulk { get { return bulkDocuments; } }
         /// <summary>
         /// Helper methods for the users database
         /// </summary>

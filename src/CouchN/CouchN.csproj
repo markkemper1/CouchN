@@ -54,6 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attachment.cs" />
+    <Compile Include="BulkDocuments.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="Databases.cs" />
     <Compile Include="DesginDocuments.cs" />

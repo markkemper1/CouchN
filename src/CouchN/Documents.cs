@@ -308,20 +308,6 @@ namespace CouchN
                                                        });
 
                 payload["_attachments"] = JObject.FromObject(existingAttachments);
-                //// var helper = MuiltpartRelatedHelper.Create(new Uri("http://localhost:8888"));//session.GetUri(id, null));
-                // var helper = MuiltpartRelatedHelper.Create(session.GetUri(id, null));
-                //// helper.DebugOn();
-                // helper.Request.Credentials = session.Credential;
-
-                // helper.AddPart(payload.ToString());
-                // helper.AddPart(newAttachmentContent, null);
-
-                // responseContent = helper.Execute();
-
-                //var newVersion = this.PutAttachment(id, info.Revision,
-                //                                    "Version-" + revision.Split('-')[0] + "-" +
-                //                                    DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss"), "text/json",
-                //                                    Encoding.UTF8.GetBytes(oldDocument.ToString()));
             }
             var request = session.PutRequest(id);
             request.AddJson(payload);
@@ -458,7 +444,10 @@ namespace CouchN
         }
 
 
+        
     }
+
+    
 
     public class UniqueConstraint
     {
