@@ -127,6 +127,7 @@ namespace CouchN.Test
                 var result = session.Bulk.All(new ViewQuery() { IncludeDocs = true });
 
                 result.Rows.Length.ShouldBe(3);
+                result.Documents.Skip(0).First()["type"].ShouldBe("TestDoc");
                 result.Documents.Skip(0).First().ToObject<TestDoc>().Text.ShouldBe("updated 1");
                 result.Documents.Skip(1).First().ToObject<TestDoc>().Text.ShouldBe("updated 2");
                 result.Documents.Skip(2).First().ToObject<TestDoc>().Text.ShouldBe("updated 3");

@@ -69,14 +69,14 @@ namespace CouchN
 
             for (int i = 0; i < documents.Length; i++)
             {
-                jsonDocs[i] = JObject.FromObject(documents[i]);
-
                 var info = infos[i] ?? new Documents.DocumentInfo(newIds[newIdIndex++], null);
+
+                jsonDocs[i] = session.Documents.AddInfoToObject(documents[i], info);
 
                 jsonDocs[i]["_id"] = info.Id;
                 jsonDocs[i]["_rev"] = info.Revision;
 
-                if(jsonDocs[i]["_rev"].Value<string>() == null)
+                if (jsonDocs[i]["_rev"].Value<string>() == null)
                     jsonDocs[i].Remove("_rev");
             }
 
