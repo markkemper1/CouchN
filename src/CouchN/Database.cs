@@ -36,10 +36,10 @@ namespace CouchN
         public bool IsCompactRunning { get; set; }
         
         [DataMember(Name="disk_size")]
-        public int DiskSize { get; set; }
+        public long DiskSize { get; set; }
 
         [DataMember(Name="disk_format_version")]
-        public int DiskFormatVersion { get; set; }
+        public long DiskFormatVersion { get; set; }
         
         [DataMember(Name="committed_update_seq")]
         public long CommittedUpdateSeq { get; set; }
