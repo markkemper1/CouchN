@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
+using ServiceStack.Text;
 
 namespace CouchN.Test
 {
@@ -69,66 +71,60 @@ namespace CouchN.Test
         public void run2()
         {
 
-            var stopWatch1 = new Stopwatch();
-
-            stopWatch1.Start();
-            Console.WriteLine("Total time taken: {0}ms to fetch raw", stopWatch1.ElapsedMilliseconds);
-
-            stopWatch1.Stop();
-
             using (
-                var session = TheCouch.CreateSession("cruiseme", new Uri("http://127.0.0.1:5984"))
-                )
-            {
-                var stopWatch = new Stopwatch();
-
-                stopWatch.Start();
-
-                var destinations =
-                    session.Design("destinations").ViewDocs<Destination>("by_slug", new ViewQuery() ).Documents;
-
-                stopWatch.Stop();
-
-                Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
-                    destinations.Length);
-
-                stopWatch.Reset();
-                stopWatch.Start();
-
-                var x = session.Design("destinations").ViewDocs<Destination>("by_slug", new ViewQuery()).Documents;
-
-                stopWatch.Stop();
-
-                Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
-                    destinations.Length);
-            }
-
-            using (
-               var session = TheCouch.CreateSession("cruiseme", new Uri("http://localhost:5984"))
+               var session = TheCouch.CreateSession("cruiseme_01", new Uri("http://54.243.128.249:15984"))///cruiseme_01/_design/ports/_view/by_id?include_docs=true
                )
             {
                 var stopWatch = new Stopwatch();
 
                 stopWatch.Start();
 
-                var destinations =
-                    session.Design("destinations").ViewDocs<Destination>("by_slug", new ViewQuery()).Documents;
+                var ports =
+                    session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery()).Documents;
 
                 stopWatch.Stop();
 
                 Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
-                    destinations.Length);
+                    ports.Length);
 
                 stopWatch.Reset();
                 stopWatch.Start();
 
-                var x = session.Design("destinations").ViewDocs<Destination>("by_slug", new ViewQuery() {}).Documents;
+                var x = session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery(){IncludeDocs = true, Limit = 1}).Documents;
 
                 stopWatch.Stop();
 
                 Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
                     x.Length);
             }
+        }
+
+        [Test]
+        public void json_speed_test()
+        {
+            string json = File.ReadAllText("destinations.json");
+            var stopWatch = new Stopwatch();
+
+            stopWatch.Start();
+
+            var x = json.DeserializeObject<DesginDocuments.ViewResult<object, Destination>>();
+
+            stopWatch.Stop();
+
+            Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
+                x.Total);
+
+            stopWatch.Reset();
+
+            stopWatch.Start();
+
+            x = json.FromJson<DesginDocuments.ViewResult<object, Destination>>();
+
+            stopWatch.Stop();
+
+            Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
+                x.Total);
+
         }
 
         class WebClientEx : WebClient
