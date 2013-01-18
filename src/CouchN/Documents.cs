@@ -362,6 +362,9 @@ namespace CouchN
             string responseContent = null;
             if (oldDocument != null && config.KeepHistory > 0)
             {
+                //Don't change it if nothings changed.
+                if(JToken.DeepEquals(oldDocument, payload))
+                    return new DocumentInfo(id, revision);
 
                 var existingAttachments = payload["_attachments"] != null
                                               ? payload["_attachments"].ToObject<AttachmentList>()
@@ -372,6 +375,7 @@ namespace CouchN
                                                  );
 
                 var versionNoInt = Convert.ToInt32(revision.Split('-')[0]);
+
                 string versionKey = "Version-" + versionNoInt + "-" +
                                    DateTime.UtcNow.ToString("yyyy-MMM-dd-HH-mm-ss");
                 

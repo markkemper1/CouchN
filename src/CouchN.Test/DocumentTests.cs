@@ -199,11 +199,11 @@ namespace CouchN.Test
 
                 config.KeepHistory = 10;
 
-                testObject = new TestDocUniqueVersioned { Name = "hello world" };
+                testObject = new TestDocUniqueVersioned { Name = "hello world 1" };
 
                 result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
 
-                testObject.Name = "Hello World 2";
+                testObject.Name = "hello world";
 
                 result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
 
@@ -223,6 +223,39 @@ namespace CouchN.Test
                 Assert.That(testObject._Attachments.Count, Is.EqualTo(2));
             }
         }
+
+        [Test]
+        public void should_save_only_create_history_if_something_changes()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUniqueVersioned>();
+
+                var testObject = new TestDocUniqueVersioned { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+                config.KeepHistory = 10;
+
+                result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+                result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+                testObject = session.Documents.Get<TestDocUniqueVersioned>(result.Id);
+
+                Assert.That(testObject._Attachments, Is.Null);
+
+                testObject.Name = "Rock Out";
+
+                result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
+
+                testObject = session.Documents.Get<TestDocUniqueVersioned>(result.Id);
+
+                Assert.That(testObject._Attachments, Is.Not.Null);
+                Assert.That(testObject._Attachments.Count, Is.EqualTo(1));
+            }
+        }
+
         [Test]
         public void attached_version_document_should_not_have_history()
         {
