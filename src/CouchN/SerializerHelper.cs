@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text;
+using Newtonsoft.Json;
 
 namespace CouchN
 {
@@ -14,6 +15,12 @@ namespace CouchN
         {
             if (value == null) return default(T);
             return JsonConvert.DeserializeObject<T>(value, new JsonSerializerSettings(){ NullValueHandling = NullValueHandling.Ignore});
+        }
+
+        public static T DeserializeObject<T>(this byte[] value, Encoding encoding = null)
+        {
+            encoding = encoding ?? Encoding.UTF8;
+            return encoding.GetString(value).DeserializeObject<T>();
         }
     }
 }

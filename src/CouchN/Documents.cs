@@ -238,6 +238,13 @@ namespace CouchN
             }
         }
 
+        public T GetDocumentAttachment<T>(string id, string attachmentName)
+        {
+            var attachment = GetAttachment(id, attachmentName);
+            if (attachment == null) return default(T);
+            return SerializerHelper.DeserializeObject<T>(attachment);
+        }
+
         public byte[] GetAttachment(string id, string attachmentName)
         {
             var endPoint = this.session.GetUri(id + "/" + attachmentName, null);
@@ -345,7 +352,7 @@ namespace CouchN
             }
 
             JObject oldDocument = null;
-            if (revision != null && config.KeepHistory)
+            if (revision != null && config.KeepHistory > 0)
             {
                 oldDocument = this.Get<JObject>(id);
             }
@@ -353,7 +360,7 @@ namespace CouchN
             JObject payload = this.AddInfoToObject(document, new DocumentInfo(id, revision));
 
             string responseContent = null;
-            if (oldDocument != null && config.KeepHistory)
+            if (oldDocument != null && config.KeepHistory > 0)
             {
 
                 var existingAttachments = payload["_attachments"] != null
@@ -364,11 +371,33 @@ namespace CouchN
                                                     : new AttachmentList()
                                                  );
 
-                string versionNo = "Version-" + revision.Split('-')[0] + "-" +
-                                   DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss");
+                var versionNoInt = Convert.ToInt32(revision.Split('-')[0]);
+                string versionKey = "Version-" + versionNoInt + "-" +
+                                   DateTime.UtcNow.ToString("yyyy-MMM-dd-HH-mm-ss");
+                
+                //Remove ald attachments
+                var toRemove = new List<string>();
+                foreach (var kv in existingAttachments)
+                {
+                    int versionNo = 0;
+                    var keySplit = kv.Key.Split('-');
+                    if(keySplit.Length < 2) continue;
+                    
+                    if(!Int32.TryParse(keySplit[1], out versionNo) ) continue;
+
+                    if(versionNo <= versionNoInt - config.KeepHistory)
+                        toRemove.Add(kv.Key);
+                }
+                foreach (var k in toRemove)
+                    existingAttachments.Remove(k);
+
+                //Remove any attachments from this attachment.
+                oldDocument.Remove("_attachments");
+                oldDocument.Remove("_Attachments");
 
                 string newAttachmentContent = oldDocument.ToString();
-                existingAttachments.Add(versionNo, new Attachment()
+
+                existingAttachments.Add(versionKey, new Attachment()
                 {
                     ContentType = "application/json",
                     Data = Convert.ToBase64String(Encoding.UTF8.GetBytes(newAttachmentContent)),
@@ -480,7 +509,7 @@ namespace CouchN
         /// </summary>
         public Func<T, string> UniqueConstraint { get; set; }
 
-        public bool KeepHistory { get; set; }
+        public int KeepHistory { get; set; }
 
         public static DocumentConfig<T> Default()
         {

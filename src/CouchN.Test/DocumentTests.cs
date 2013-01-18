@@ -170,7 +170,7 @@ namespace CouchN.Test
                 var bytes = Convert.FromBase64String(data64String);
                 string attachmentName = "testAttachment";
 
-                result = session.Documents.PutAttachment(result.Id,result.Revision, attachmentName, "text/plain", bytes);
+                result = session.Documents.PutAttachment(result.Id, result.Revision, attachmentName, "text/plain", bytes);
 
                 var bytesStored = session.Documents.GetAttachment(result.Id, attachmentName);
 
@@ -193,13 +193,13 @@ namespace CouchN.Test
             {
                 var config = Documents.Configure<TestDocUniqueVersioned>();
 
-                var testObject = new TestDocUniqueVersioned {Name = "hello world"};
+                var testObject = new TestDocUniqueVersioned { Name = "hello world" };
 
                 var result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
 
-                config.KeepHistory = true;
+                config.KeepHistory = 10;
 
-                testObject = new TestDocUniqueVersioned {Name = "hello world"};
+                testObject = new TestDocUniqueVersioned { Name = "hello world" };
 
                 result = session.Documents.Save<TestDocUniqueVersioned>(testObject);
 
@@ -223,10 +223,45 @@ namespace CouchN.Test
                 Assert.That(testObject._Attachments.Count, Is.EqualTo(2));
             }
         }
+        [Test]
+        public void attached_version_document_should_not_have_history()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUniqueVersioned>();
+
+                var testObject = new TestDocUniqueVersioned { Name = "hello world 1" };
+
+                config.KeepHistory = 10;
+
+                var result = session.Documents.Save(testObject);
+
+                testObject.Name = "Hello World 2";
+
+                result = session.Documents.Save(testObject);
+
+                testObject.Name = "Hello World 3";
+
+                result = session.Documents.Save(testObject);
+
+                testObject = session.Documents.Get<TestDocUniqueVersioned>(result.Id);
+
+                Assert.That(testObject._Attachments, Is.Not.Null);
+                Assert.That(testObject._Attachments.Count, Is.EqualTo(2));
+
+                var version1 = session.Documents.GetDocumentAttachment<TestDocUniqueVersioned>(result.Id, testObject._Attachments.First().Key);
+                version1._Attachments.ShouldBe(null);
+
+                var version2 = session.Documents.GetDocumentAttachment<TestDocUniqueVersioned>(result.Id, testObject._Attachments.Skip(1).First().Key);
+                version2._Attachments.ShouldBe(null);
+
+
+            }
+        }
 
         [Test]
-            public void should_save_a_document_version_history_when_enabled_and_document_doesnt_have_attachment_property()
-            {
+        public void should_save_a_document_version_history_when_enabled_and_document_doesnt_have_attachment_property()
+        {
             using (var session = new TemporarySession())
             {
                 var config = Documents.Configure<TestDocUnique>();
@@ -235,7 +270,7 @@ namespace CouchN.Test
 
                 var result = session.Documents.Save<TestDocUnique>(testObject);
 
-                config.KeepHistory = true;
+                config.KeepHistory = 10;
 
                 testObject = new TestDocUnique { Name = "hello world" };
 
@@ -255,6 +290,43 @@ namespace CouchN.Test
                 result = session.Documents.Save<TestDocUnique>(testObject);
 
                 jObject = session.Documents.Get<JObject>(result.Id);
+
+                Assert.That(jObject["_attachments"], Is.Not.Null);
+                Assert.That(jObject["_attachments"].Children().Count(), Is.EqualTo(2));
+
+            }
+        }
+
+        [Test]
+        public void history_should_be_limited_to_keep_history_length()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUnique>();
+
+                var testObject = new TestDocUnique { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUnique>(testObject);
+
+                config.KeepHistory = 2;
+
+                testObject = new TestDocUnique { Name = "hello world" };
+
+                result = session.Documents.Save<TestDocUnique>(testObject);
+
+                testObject.Name = "Hello World 2";
+
+                result = session.Documents.Save<TestDocUnique>(testObject);
+
+                testObject.Name = "Hello World 3";
+
+                result = session.Documents.Save<TestDocUnique>(testObject);
+
+                testObject.Name = "Hello World 4";
+
+                result = session.Documents.Save<TestDocUnique>(testObject);
+
+                var jObject = session.Documents.Get<JObject>(result.Id);
 
                 Assert.That(jObject["_attachments"], Is.Not.Null);
                 Assert.That(jObject["_attachments"].Children().Count(), Is.EqualTo(2));
@@ -283,9 +355,9 @@ namespace CouchN.Test
             {
                 using (var anotherSession = new TemporarySession())
                 {
-                    Documents.Configure<TestDoc>(database: anotherSession.DatabaseName );
+                    Documents.Configure<TestDoc>(database: anotherSession.DatabaseName);
 
-                    var testObject = new TestDoc {Text = "hello world"};
+                    var testObject = new TestDoc { Text = "hello world" };
 
                     var info = session.Save(testObject, "test");
 
@@ -333,7 +405,7 @@ namespace CouchN.Test
         {
             using (var session = new TemporarySession())
             {
-                var testObject1 = new TestDoc { _id="test/1", Text = "hello world" };
+                var testObject1 = new TestDoc { _id = "test/1", Text = "hello world" };
 
                 var result1 = session.Get<TestDoc>("test/1");
 
@@ -359,7 +431,7 @@ namespace CouchN.Test
 
                 Assert.That(result4, Is.Not.Null);
                 Assert.That(result4._id == "Test/2");
-               
+
             }
         }
     }
@@ -374,7 +446,7 @@ namespace CouchN.Test
         public string Name { get; set; }
     }
 
-    public class TestDocUniqueVersioned 
+    public class TestDocUniqueVersioned
     {
         public string Name { get; set; }
         public AttachmentList _Attachments { get; set; }
