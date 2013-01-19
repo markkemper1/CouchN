@@ -30,7 +30,7 @@ namespace CouchN
             this.db = db;
             this.defaultDb = db;
             client = new RestClient(baseUri.ToString());
-
+            
             if (!String.IsNullOrWhiteSpace(this.baseUri.UserInfo))
             {
                 var username = this.baseUri.UserInfo.Substring(0, this.baseUri.UserInfo.IndexOf(':'));
@@ -317,6 +317,23 @@ namespace CouchN
             var request = Request(path, query);
             request.Method = Method.PUT;
             return request;
+        }
+
+        internal byte[] DownloadData(string path, Dictionary<string, object> query = null)
+        {
+
+            var request = Request(path, query);
+            var response = client.Execute(request);
+            
+            if (response.StatusCode == HttpStatusCode.OK ||
+                response.StatusCode == HttpStatusCode.Created  &&
+                response.StatusCode != HttpStatusCode.Accepted)
+                return response.RawBytes;
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
         }
 
         public virtual void Dispose()

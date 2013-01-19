@@ -247,21 +247,8 @@ namespace CouchN
 
         public byte[] GetAttachment(string id, string attachmentName)
         {
-            var endPoint = this.session.GetUri(id + "/" + attachmentName, null);
-            using (var client = new WebClient())
-            {
-                try
-                {
-                    var responseByte = client.DownloadData(endPoint);
-                    return responseByte;
-                }
-                catch (WebException ex)
-                {
-                    if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
-                        return null;
-                    throw;
-                }
-            }
+            var responseByte = this.session.DownloadData(id + "/" + attachmentName);
+            return responseByte;
         }
 
         public DocumentInfo DeleteAttachment(string id, string revision, string attachmentName)
