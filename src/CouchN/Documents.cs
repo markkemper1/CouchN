@@ -399,6 +399,9 @@ namespace CouchN
             var request = session.PutRequest(id);
             request.AddJson(payload);
 
+            if (config.OnSaving != null)
+                config.OnSaving(id, revision, document);
+
             var response = session.Client.Execute(request);
 
             if (response.StatusCode != HttpStatusCode.Created
@@ -420,16 +423,8 @@ namespace CouchN
                 config.SetInfo(info, document);
 
 
-            //if (oldDocument != null && config.KeepHistory)
-            //{
-
-            //    var newVersion = this.PutAttachment(id, info.Revision,
-            //                                        "Version-" + revision.Split('-')[0] + "-" +
-            //                                        DateTime.UtcNow.ToString("dd-MMM-yyyy-HH-mm-ss"), "text/json",
-            //                                        Encoding.UTF8.GetBytes(oldDocument.ToString()));
-            //    return newVersion;
-            //}
-
+            if (config.OnSaved != null)
+                config.OnSaved(info.Id, info.Revision, document);
 
             return info;
         }
@@ -499,6 +494,10 @@ namespace CouchN
         ///     If you need more then either maintain them your self OR use a RDBMS.
         /// </summary>
         public Func<T, string> UniqueConstraint { get; set; }
+
+        public Action<string,string, T> OnSaving { get; set; }
+
+        public Action<string, string, T> OnSaved { get; set; }
 
         public int KeepHistory { get; set; }
 

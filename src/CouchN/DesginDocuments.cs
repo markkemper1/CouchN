@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -61,7 +62,16 @@ namespace CouchN
                 query.IncludeDocs = true;
 
             string path = basePath + "/_view/" + viewName;
+
+
+            var stopWatch = new Stopwatch();
+
+            stopWatch.Start();
+
             var responseContent = session.Get(path, query.ToDictionary());
+
+            stopWatch.Stop();
+            Console.WriteLine("Get Request took: {0}", stopWatch.ElapsedMilliseconds);
 
             if (responseContent == null)
                 throw new Exception("Design view not found: " + path);
@@ -130,6 +140,31 @@ namespace CouchN
         }
 
 
+        public ViewDocsResultRaw<DOC> ViewDocs1<DOC>(string viewName, ViewQuery query = null, bool track = false)
+        {
+            query = query ?? new ViewQuery();
+            query.IncludeDocs = true;
+
+            string path = basePath + "/_view/" + viewName;
+
+            var stopWatch = new Stopwatch();
+            
+            stopWatch.Start();
+
+            var responseContent = session.Get(path, query.ToDictionary());
+
+            stopWatch.Stop();
+
+            Console.WriteLine("Get Request took: {0}", stopWatch.ElapsedMilliseconds);
+
+            if (responseContent == null)
+                throw new Exception("Design view not found: " + path);
+
+            var resultRaw = responseContent.DeserializeObject<ViewDocsResultRaw<DOC>>();
+
+            return resultRaw;
+        }
+
 
         [DataContract]
         public class ViewResult<VALUE, DOC>
@@ -155,6 +190,32 @@ namespace CouchN
 
                 [DataMember(Name = "key")]
                 public object Key { get; set; }
+            }
+        }
+
+        [DataContract]
+        public class ViewDocsResultRaw<DOC>
+        {
+            [DataMember(Name = "total_rows")]
+            public int Total { get; set; }
+
+            [DataMember(Name = "offset")]
+            public int Offset { get; set; }
+
+            [DataMember(Name = "rows")]
+            public RowInfo<DOC>[] Rows { get; set; }
+
+            [DataContract]
+            public class RowInfo<DOC>
+            {
+                [DataMember(Name = "id")]
+                public string Id { get; set; }
+
+                [DataMember(Name = "key")]
+                public object Key { get; set; }
+
+                [DataMember(Name = "doc")]
+                public DOC Document { get; set; }
             }
         }
 

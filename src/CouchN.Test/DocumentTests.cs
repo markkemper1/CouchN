@@ -132,6 +132,49 @@ namespace CouchN.Test
             }
         }
 
+        [Test]
+        public void should_be_able_hook_into_pre_and_post_save_events()
+        {
+            using (var session = new TemporarySession())
+            {
+                var config = Documents.Configure<TestDocUnique>();
+
+
+                int counter = 0, onSavingCounter = 0, onSavedCounter = 0;
+                string onSavedId = String.Empty, onSavingId = String.Empty, onSavingRevision = String.Empty, onSavedRevision = String.Empty;
+                TestDocUnique onSavingObj= null, onSavedObj = null;
+
+                config.OnSaving = (id, rev, obj) =>
+                    {
+                        onSavingCounter = counter++;
+                        onSavingId = id;
+                        onSavingRevision = rev;
+                        onSavingObj = obj;
+                    };
+
+                config.OnSaved = (id, rev, obj) =>
+                {
+                    onSavedCounter = counter++;
+                    onSavedId = id;
+                    onSavedRevision = rev;
+                    onSavedObj = obj;
+                };
+
+                var testObject = new TestDocUnique { Name = "hello world" };
+
+                var result = session.Documents.Save<TestDocUnique>(testObject);
+
+                result.Id.ShouldBe(onSavedId);
+                result.Id.ShouldBe(onSavingId);
+
+                onSavingRevision.ShouldBe(null);
+                result.Revision.ShouldBe(onSavedRevision);
+
+                testObject.ShouldBe(onSavingObj);
+                testObject.ShouldBe(onSavedObj);
+            }
+        }
+
 
 
         [Test]

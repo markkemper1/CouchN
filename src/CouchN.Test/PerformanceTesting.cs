@@ -72,7 +72,7 @@ namespace CouchN.Test
         {
 
             using (
-               var session = TheCouch.CreateSession("cruiseme_01", new Uri("http://54.243.128.249:15984"))///cruiseme_01/_design/ports/_view/by_id?include_docs=true
+               var session = TheCouch.CreateSession("cruiseme", new Uri("http://localhost:5984"))///cruiseme_01/_design/ports/_view/by_id?include_docs=true
                )
             {
                 var stopWatch = new Stopwatch();
@@ -80,22 +80,45 @@ namespace CouchN.Test
                 stopWatch.Start();
 
                 var ports =
-                    session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery()).Documents;
+                    session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery(){Limit = 100}).Documents;
 
                 stopWatch.Stop();
 
-                Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
+                Console.WriteLine("Total time taken: {0}ms to fetch {1} ports", stopWatch.ElapsedMilliseconds,
                     ports.Length);
 
                 stopWatch.Reset();
                 stopWatch.Start();
 
-                var x = session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery(){IncludeDocs = true, Limit = 1}).Documents;
+                var x = session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery(){Limit = 100}).Documents;
 
                 stopWatch.Stop();
 
-                Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
+                Console.WriteLine("Total time taken: {0}ms to fetch {1} ports", stopWatch.ElapsedMilliseconds,
                     x.Length);
+
+                stopWatch.Reset();
+                stopWatch.Start();
+
+                var y = session.Design("ports").ViewDocs1<Destination>("by_id", new ViewQuery() { Limit = 100 });
+
+                stopWatch.Stop();
+
+                Console.WriteLine("Total time taken: {0}ms to fetch {1} ports", stopWatch.ElapsedMilliseconds,
+                    y.Rows.Length);
+
+                WebClient client = new WebClient();
+                stopWatch.Reset();
+                stopWatch.Start();
+
+                client.DownloadString("http://localhost:5984/cruiseme/_design/ports/_view/by_id?include_docs=true");
+
+                stopWatch.Stop();
+
+                   Console.WriteLine("Total time taken: {0}ms to fetch {1} ports", stopWatch.ElapsedMilliseconds,
+                    y.Rows.Length);
+
+
             }
         }
 
