@@ -124,6 +124,36 @@ function(doc,req)
             }
         }
 
+        [Test]
+        public void test_update_handlers_with_document()
+        {
+            using (var session = new TemporarySession())
+            {
+                var designDoc = new SimpleDesignDocument();
+                designDoc.Updates["test1"] = @"
+function(doc,req)
+{
+   
+    var resp = {
+        'headers': {
+            'Content-Type': 'application/json'
+        },
+        'body': req.body ? toJSON( JSON.parse(req.body) ) : toJSON({m: 'null body'})
+    };
+    
+    return [doc, resp];
+
+}".Trim();
+
+                session.Design("test1").Put(designDoc);
+
+                var response = session.Design("test1").Update<JToken>("test1", "x", payload: new {Hello="World"});
+
+                Console.WriteLine(response);
+
+            }
+        }
+
         public class Port
         {
             public string Id { get; set; }

@@ -140,6 +140,34 @@ namespace CouchN
         }
 
 
+        public Tuple<RESPONSE, string> Update<RESPONSE>(string handler, string documentId = null, object payload = null)
+        {
+            bool hasDocId = !String.IsNullOrWhiteSpace(documentId);
+
+            var path = basePath + "/_update/" + handler + (hasDocId ? "/" + documentId : null);
+
+            var request = hasDocId ? session.PutRequest(path) : session.PostRequest(path);
+
+            if(payload != null)
+                request.AddJson(payload.Serialize());
+
+            var response = session.Client.Execute(request);
+
+            if (response.StatusCode == HttpStatusCode.OK ||
+                response.StatusCode == HttpStatusCode.Created)
+            {
+                string revision = null;
+                var revHeader = response.Headers.FirstOrDefault(x => x.Name == "X-Couch-Update-NewRev");
+                
+                if (revHeader != null)
+                   revision  = revHeader.Value.ToString();
+
+                return Tuple.Create(response.Content.DeserializeObject<RESPONSE>(), revision);
+            }
+
+            throw new ApplicationException("Failed: " + response.StatusCode + " - " + response.Content);
+        }
+
         public ViewDocsResultRaw<DOC> ViewDocs1<DOC>(string viewName, ViewQuery query = null, bool track = false)
         {
             query = query ?? new ViewQuery();
