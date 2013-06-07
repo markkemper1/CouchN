@@ -47,6 +47,11 @@ namespace CouchN
                 session.Documents.Save(JObject.Parse(content), basePath, null);
         }
 
+        public ViewResult<VALUE, object> View<VALUE>(string viewName, ViewQuery query = null, bool track = false)
+        {
+            return View<VALUE, object>(viewName, query);
+        }
+
         public ViewResult<object, DOC> ViewDocs<DOC>(string viewName, ViewQuery query = null, bool track = false)
         {
             query = query ?? new ViewQuery();
