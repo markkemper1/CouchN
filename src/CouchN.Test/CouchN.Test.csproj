@@ -56,6 +56,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BulkDocumentsTest.cs" />
+    <Compile Include="ChangesTest.cs" />
     <Compile Include="CloudantTest.cs" />
     <Compile Include="DesignDocumentTests.cs" />
     <Compile Include="CreateDatabaseTest.cs" />

@@ -105,15 +105,15 @@ namespace CouchN
             if (Stale != null) query["stale"] = Stale;
             if (Descending.HasValue) query["descending"] = Descending.Value ? "true" : "false";
             if (Skip != null) query["skip"] = Skip;
-            
-            if (Group.HasValue) query["group"] = Group.HasValue ? "true" : "false";
+
+            if (Group.HasValue) query["group"] = Group.Value ? "true" : "false";
 
             if (GroupLevel != null) query["group_level"] = GroupLevel;
 
-            if (Reduce.HasValue) query["reduce"] = Reduce.HasValue ? "true" : "false"; ;
-            if (IncludeDocs.HasValue) query["include_docs"] = IncludeDocs.HasValue ? "true" : "false"; ;
-            if (InclusiveEnd.HasValue) query["inclusive_end"] = InclusiveEnd.HasValue ? "true" : "false"; ;
-            if (UpdateSeq.HasValue) query["update_seq"] = UpdateSeq.HasValue ? "true" : "false"; ;
+            if (Reduce.HasValue) query["reduce"] = Reduce.Value ? "true" : "false"; ;
+            if (IncludeDocs.HasValue) query["include_docs"] = IncludeDocs.Value ? "true" : "false"; ;
+            if (InclusiveEnd.HasValue) query["inclusive_end"] = InclusiveEnd.Value ? "true" : "false"; ;
+            if (UpdateSeq.HasValue) query["update_seq"] = UpdateSeq.Value ? "true" : "false"; ;
             return query;
         }
     }

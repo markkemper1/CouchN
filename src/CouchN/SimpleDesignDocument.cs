@@ -8,11 +8,12 @@ namespace CouchN
     {
         public SimpleDesignDocument()
         {
-            this.Views = new Dictionary<string, View>();
-            this.Updates = new Dictionary<string, string>();
-            this.Shows = new Dictionary<string, string>();
-            this.Rewrites = new List<object>();
-            this.Lists = new Dictionary<string, string>();
+            Views = new Dictionary<string, View>();
+            Filters = new Dictionary<string, string>();
+            Updates = new Dictionary<string, string>();
+            Shows = new Dictionary<string, string>();
+            Rewrites = new List<object>();
+            Lists = new Dictionary<string, string>();
         }
 
         [DataMember(Name = "views")]
@@ -23,6 +24,9 @@ namespace CouchN
 
         [DataMember(Name = "shows")]
         public Dictionary<string, string> Shows { get; set; }
+
+        [DataMember(Name = "filters")]
+        public Dictionary<string, string>  Filters { get; set; }
 
         [DataMember(Name = "rewrites")]
         public List<object> Rewrites { get; set; }

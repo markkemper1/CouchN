@@ -154,6 +154,40 @@ function(doc,req)
             }
         }
 
+
+
+        [Test]
+        public void test_filters()
+        {
+            using (var session = new TemporarySession())
+            {
+                var designDoc = new SimpleDesignDocument();
+                designDoc.Filters["testFilter"] = @"
+function(doc,req)
+{
+   
+    return doc.filter;
+
+}".Trim();
+
+                session.Design("test").Put(designDoc);
+
+                session.Documents.Save(new {item="1", filter= false});
+                session.Documents.Save(new { item = "2", filter = true });
+                session.Documents.Save(new { item = "3", filter = true });
+
+                var results = session.Changes.Poll(new ChangesQuery() {Filter = "test/testFilter"});
+
+                Assert.That(results.Results.Length, Is.EqualTo(2));
+
+                results = session.Changes.Poll(new ChangesQuery() {  });
+
+                Assert.That(results.Results.Length, Is.EqualTo(4));
+
+            }
+        }
+
+
         public class Port
         {
             public string Id { get; set; }

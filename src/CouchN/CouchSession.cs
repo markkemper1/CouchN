@@ -10,7 +10,7 @@ namespace CouchN
 {
     public class CouchSession : IDisposable
     {
-        private readonly Uri baseUri;
+        public  Uri baseUri { get; private set; }
         private string db;
         private Dictionary<string, DesginDocuments> designDocuments = new Dictionary<string, DesginDocuments>();
         private Documents documents;
@@ -40,6 +40,7 @@ namespace CouchN
             }
 
             documents = new Documents(this);
+            Changes = new Changes(this);
             bulkDocuments = new BulkDocuments(this);
             users = new Users(this);
         }
@@ -54,6 +55,8 @@ namespace CouchN
         internal RestClient Client { get { return client; } }
 
         public string DatabaseName { get { return this.db; } }
+
+        public Changes Changes { get; private set; }
 
         public Documents Documents
         {
@@ -116,7 +119,7 @@ namespace CouchN
             return new Uri(baseUri, pathAndQuery);
         }
 
-        private string ToQueryString(IEnumerable<KeyValuePair<string, object>> query)
+        internal string ToQueryString(IEnumerable<KeyValuePair<string, object>> query)
         {
 
             if (query == null) return null;
