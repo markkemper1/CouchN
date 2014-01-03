@@ -25,12 +25,12 @@ namespace CouchN
             this.basePath = "_design/" + name;
         }
 
-        public void Get<T>(T doc)
+        public T Get<T>()
         {
-            this.Documents.Get<T>(basePath);
+            return Documents.Get<T>(basePath);
         }
 
-        public void Put<T>(T doc, bool track = true)
+        public void Put<T>(T doc)
         {
             this.Documents.Save(doc, basePath);
         }
@@ -105,7 +105,7 @@ namespace CouchN
                         config.SetInfo(new Documents.DocumentInfo(final.Rows[i].Id, document["_rev"].ToString()), typedDocument);
                 }
 
-                final.Values[i] = value != null ?  value.ToString().DeserializeObject<VALUE>() : default(VALUE);
+                final.Values[i] = value != null ?  value.ToObject<VALUE>() : default(VALUE);
 
                 if (track)
                     this.Documents.Attach(final.Documents[i], result["rows"][i]["doc"]["_id"].ToString(), result["rows"][i]["doc"]["_rev"].ToString());
