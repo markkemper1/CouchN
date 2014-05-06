@@ -90,7 +90,7 @@ namespace CouchN.Test
                 stopWatch.Reset();
                 stopWatch.Start();
 
-                var x = session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery(){Limit = 100}).Documents;
+                var x = session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery(){}).Documents;
 
                 stopWatch.Stop();
 
@@ -100,11 +100,11 @@ namespace CouchN.Test
                 stopWatch.Reset();
                 stopWatch.Start();
 
-                var y = session.Design("ports").ViewDocs1<Destination>("by_id", new ViewQuery() { Limit = 100 });
+                var y = session.Design("ports").ViewDocs<Destination>("by_id", new ViewQuery() {   });
 
                 stopWatch.Stop();
 
-                Console.WriteLine("Total time taken: {0}ms to fetch {1} ports", stopWatch.ElapsedMilliseconds,
+                Console.WriteLine("Total time taken: {0}ms to fetch {1} ports 1", stopWatch.ElapsedMilliseconds,
                     y.Rows.Length);
 
                 WebClient client = new WebClient();
