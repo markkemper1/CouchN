@@ -54,37 +54,70 @@ namespace CouchN
             return View<VALUE, object>(viewName, query);
         }
 
-        private ViewResult<object, DOC> ViewDocs1<DOC>(string viewName, ViewQuery query = null)
-        {
-            query = query ?? new ViewQuery();
-            query.IncludeDocs = true;
-            return View<object, DOC>(viewName, query);
-        }
-
-        public ViewResult<VALUE, DOC> View<VALUE, DOC>(string viewName, ViewQuery query = null)
+        public ViewResult<VALUE, DOC> View<VALUE, DOC>(string viewName, ViewQuery query = null, bool track = false)
         {
             query = query ?? new ViewQuery();
 
-            //if (track && !query.IncludeDocs.HasValue)
-            //    query.IncludeDocs = true;
+            if (track && !query.IncludeDocs.HasValue)
+                query.IncludeDocs = true;
 
             string path = basePath + "/_view/" + viewName;
 
-
-            using (var client = new WebClient())
+            if (!track)
             {
-                using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
+                using (var client = new WebClient())
                 {
-                    using (var textReader = new StreamReader(stream, Encoding.UTF8))
+                    using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
                     {
-                        using (var jsonReader = new JsonTextReader(textReader))
+                        using (var textReader = new StreamReader(stream, Encoding.UTF8))
                         {
-                            var serializer = new JsonSerializer();
-                            serializer.NullValueHandling = NullValueHandling.Ignore;
-                            return serializer.Deserialize<ViewDocsResultRaw<VALUE, DOC>>(jsonReader).ToViewResult();
+                            using (var jsonReader = new JsonTextReader(textReader))
+                            {
+                                var serializer = new JsonSerializer();
+                                serializer.NullValueHandling = NullValueHandling.Ignore;
+                                return serializer.Deserialize<ViewDocsResultRaw<VALUE, DOC>>(jsonReader).ToViewResult();
+                            }
                         }
                     }
                 }
+            }
+            else
+            {
+                var jObjectResult = View<VALUE, JObject>(viewName, query, false);
+
+                var final = new ViewResult<VALUE, DOC>();
+                final.Offset = jObjectResult.Offset;
+                final.Total = jObjectResult.Total;
+                final.Rows = new ViewResult<VALUE, DOC>.RowInfo[jObjectResult.Rows.Length];
+                final.Documents = new DOC[jObjectResult.Rows.Length];
+                final.Values = jObjectResult.Values;
+
+                var config = Documents.GetConfiguration<DOC>();
+
+                for (int i = 0; i < jObjectResult.Rows.Length; i++)
+                {
+                    final.Rows[i] = new ViewResult<VALUE, DOC>.RowInfo()
+                    {
+                        Id = jObjectResult.Rows[i].Id,
+                        Key = jObjectResult.Rows[i].Key
+                    };
+
+                    var jDoc = jObjectResult.Documents[i];
+                    var hasDoc = jDoc != null;
+                    var doc = hasDoc ? jDoc.ToObject<DOC>() : default(DOC);
+
+                    final.Documents[i] = doc;
+
+                    if (hasDoc)
+                    {
+                        if (config != null && config.SetInfo != null)
+                            config.SetInfo(new Documents.DocumentInfo(final.Rows[i].Id, jDoc["_rev"].ToString()), doc);
+
+                        this.Documents.Attach(doc, jDoc["_id"].Value<string>(), jDoc["_rev"].Value<string>());
+                    }
+                }
+
+                return final;
             }
             //var stopWatch = new Stopwatch();
 
@@ -114,15 +147,15 @@ namespace CouchN
 
             //    var typedDocument = final.Documents[i];
 
-            //    if(typedDocument != null)
+            //    if (typedDocument != null)
             //    {
             //        var config = Documents.GetConfiguration<DOC>();
 
-            //        if(config != null && config.SetInfo != null)
+            //        if (config != null && config.SetInfo != null)
             //            config.SetInfo(new Documents.DocumentInfo(final.Rows[i].Id, document["_rev"].ToString()), typedDocument);
             //    }
 
-            //    final.Values[i] = value != null ?  value.ToObject<VALUE>() : default(VALUE);
+            //    final.Values[i] = value != null ? value.ToObject<VALUE>() : default(VALUE);
 
             //    if (track)
             //        this.Documents.Attach(final.Documents[i], result["rows"][i]["doc"]["_id"].ToString(), result["rows"][i]["doc"]["_rev"].ToString());
@@ -131,48 +164,53 @@ namespace CouchN
             //return final;
         }
 
-        
 
-        public ViewResult<object,DOC> ViewDocs<DOC>(string viewName, ViewQuery query = null, bool track = false)
+
+        public ViewResult<object, DOC> ViewDocs<DOC>(string viewName, ViewQuery query = null, bool track = false)
         {
+
             query = query ?? new ViewQuery();
             query.IncludeDocs = true;
+            return View<object, DOC>(viewName, query, track);
 
-            string path = basePath + "/_view/" + viewName;
+            //query = query ?? new ViewQuery();
+            //query.IncludeDocs = true;
 
-            using (var client = new WebClient())
-            {
-                using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
-                {
-                    using (var textReader = new StreamReader(stream, Encoding.UTF8))
-                    {
-                        using (var jsonReader = new JsonTextReader(textReader))
-                        {
-                            var serializer = new JsonSerializer();
-                            serializer.NullValueHandling = NullValueHandling.Ignore;
-                          return  serializer.Deserialize<ViewDocsResultRaw<object,DOC>>(jsonReader).ToViewResult();
-                        }
-                    }
-                }
-            }
+            //string path = basePath + "/_view/" + viewName;
+
+            //using (var client = new WebClient())
+            //{
+            //    using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
+            //    {
+            //        using (var textReader = new StreamReader(stream, Encoding.UTF8))
+            //        {
+            //            using (var jsonReader = new JsonTextReader(textReader))
+            //            {
+            //                var serializer = new JsonSerializer();
+            //                serializer.NullValueHandling = NullValueHandling.Ignore;
+            //              return  serializer.Deserialize<ViewDocsResultRaw<object,DOC>>(jsonReader).ToViewResult();
+            //            }
+            //        }
+            //    }
+            //}
 
 
 
-        //var responseContent = session.Get(path, query.ToDictionary());
+            //var responseContent = session.Get(path, query.ToDictionary());
 
-        //    stopWatch.Stop();
+            //    stopWatch.Stop();
 
-        //    Console.WriteLine("Get Request took: {0}", stopWatch.ElapsedMilliseconds);
+            //    Console.WriteLine("Get Request took: {0}", stopWatch.ElapsedMilliseconds);
 
-        //    if (responseContent == null)
-        //        throw new Exception("Design view not found: " + path);
+            //    if (responseContent == null)
+            //        throw new Exception("Design view not found: " + path);
 
-        //    stopWatch.Reset();
-        //    stopWatch.Start();
-        //    var resultRaw = responseContent.DeserializeObject<ViewDocsResultRaw<DOC>>();
+            //    stopWatch.Reset();
+            //    stopWatch.Start();
+            //    var resultRaw = responseContent.DeserializeObject<ViewDocsResultRaw<DOC>>();
 
-        //    Console.WriteLine("Deserialization Took: {0}", stopWatch.ElapsedMilliseconds);
-        //    return resultRaw;
+            //    Console.WriteLine("Deserialization Took: {0}", stopWatch.ElapsedMilliseconds);
+            //    return resultRaw;
         }
 
         public RESPONSE Update<DOC, RESPONSE>(string handler, DOC document, string key = null)
@@ -263,7 +301,7 @@ namespace CouchN
         }
 
         [DataContract]
-        public class ViewDocsResultRaw<VALUE,DOC>
+        public class ViewDocsResultRaw<VALUE, DOC>
         {
             [DataMember(Name = "total_rows")]
             public int Total { get; set; }
@@ -272,10 +310,10 @@ namespace CouchN
             public int Offset { get; set; }
 
             [DataMember(Name = "rows")]
-            public RowInfo<VALUE,DOC>[] Rows { get; set; }
+            public RowInfo<VALUE, DOC>[] Rows { get; set; }
 
             [DataContract]
-            public class RowInfo<VALUE,DOC>
+            public class RowInfo<VALUE, DOC>
             {
                 [DataMember(Name = "id")]
                 public string Id { get; set; }
@@ -296,7 +334,7 @@ namespace CouchN
                 {
                     Total = this.Total,
                     Offset = this.Offset,
-                    Rows = this.Rows.Select(x => new ViewResult<VALUE, DOC>.RowInfo {Id = x.Id, Key = x.Key}).ToArray(),
+                    Rows = this.Rows.Select(x => new ViewResult<VALUE, DOC>.RowInfo { Id = x.Id, Key = x.Key }).ToArray(),
                     Documents = this.Rows.Select(x => x.Document).ToArray(),
                     Values = this.Rows.Select(x => x.Value).ToArray()
                 };

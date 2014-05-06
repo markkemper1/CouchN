@@ -32,12 +32,18 @@ namespace CouchN.Test
 
                 Assert.That(results.Rows.Length, Is.EqualTo(2));
 
+                results = session.Design("test").ViewDocs<TestDoc>("test");
+                Assert.That(results.Documents.Length, Is.GreaterThan(0));
+                Assert.That(results.Documents[0], Is.Not.Null);
+
 
                 results = session.Design("test").ViewDocs<TestDoc>("test", track: true);
 
                 var doc1 = results.Documents[0];
 
                 doc1.Text = "arg I got changed from a view result";
+
+                Assert.That(session.Documents.GetInfo(doc1), Is.Not.Null);
                 session.Documents.Save(doc1);
 
             }
