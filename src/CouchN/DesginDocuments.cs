@@ -54,7 +54,7 @@ namespace CouchN
             return View<VALUE, object>(viewName, query);
         }
 
-        public ViewResult<VALUE, DOC> View<VALUE, DOC>(string viewName, ViewQuery query = null, bool track = false)
+        public ViewResult<VALUE, DOC> View<VALUE, DOC>(string viewName, ViewQuery query = null, bool track = false) where DOC : new()
         {
             query = query ?? new ViewQuery();
 
@@ -62,155 +62,106 @@ namespace CouchN
                 query.IncludeDocs = true;
 
             string path = basePath + "/_view/" + viewName;
-
-            if (!track)
+            var config = Documents.GetConfiguration<DOC>();
+            using (var client = new WebClient())
             {
-                using (var client = new WebClient())
+                using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
                 {
-                    using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
+                    using (var textReader = new StreamReader(stream, Encoding.UTF8))
                     {
-                        using (var textReader = new StreamReader(stream, Encoding.UTF8))
+                        using (var jsonReader = new JsonTextReader(textReader))
                         {
-                            using (var jsonReader = new JsonTextReader(textReader))
-                            {
-                                var serializer = new JsonSerializer();
-                                serializer.NullValueHandling = NullValueHandling.Ignore;
-                                return serializer.Deserialize<ViewDocsResultRaw<VALUE, DOC>>(jsonReader).ToViewResult();
-                            }
+                            var serializer = new JsonSerializer();
+                            serializer.NullValueHandling = NullValueHandling.Ignore;
+
+                            if (typeof (DOC) != typeof (Object))
+                                serializer.Converters.Add(new JsonCreationConverter<DOC>(config, track, Documents));
+
+                            return serializer.Deserialize<ViewDocsResultRaw<VALUE, DOC>>(jsonReader).ToViewResult();
                         }
                     }
                 }
             }
-            else
+        }
+
+        private class JsonCreationConverter<T> : JsonConverter where T : new()
+        {
+            private readonly DocumentConfig<T> config;
+            private readonly bool track;
+            private readonly Documents documents;
+
+
+            public JsonCreationConverter(DocumentConfig<T> config, bool track, Documents documents)
             {
-                var jObjectResult = View<VALUE, JObject>(viewName, query, false);
+                this.config = config;
+                this.track = track;
+                this.documents = documents;
+            }
 
-                var final = new ViewResult<VALUE, DOC>();
-                final.Offset = jObjectResult.Offset;
-                final.Total = jObjectResult.Total;
-                final.Rows = new ViewResult<VALUE, DOC>.RowInfo[jObjectResult.Rows.Length];
-                final.Documents = new DOC[jObjectResult.Rows.Length];
-                final.Values = jObjectResult.Values;
+            /// <summary>
+            /// Create an instance of objectType, based properties in the JSON object
+            /// </summary>
+            /// <param name="objectType">type of object expected</param>
+            /// <param name="jObject">
+            /// contents of JSON object that will be deserialized
+            /// </param>
+            /// <returns></returns>
+            protected T Create(Type objectType, JObject jObject)
+            {
+                var foo = new T();
 
-                var config = Documents.GetConfiguration<DOC>();
+                var id = jObject["_id"].Value<string>();
+                var rev = jObject["_rev"].Value<string>();
 
-                for (int i = 0; i < jObjectResult.Rows.Length; i++)
+                if (config != null && config.SetInfo != null)
                 {
-                    final.Rows[i] = new ViewResult<VALUE, DOC>.RowInfo()
-                    {
-                        Id = jObjectResult.Rows[i].Id,
-                        Key = jObjectResult.Rows[i].Key
-                    };
-
-                    var jDoc = jObjectResult.Documents[i];
-                    var hasDoc = jDoc != null;
-                    var doc = hasDoc ? jDoc.ToObject<DOC>() : default(DOC);
-
-                    final.Documents[i] = doc;
-
-                    if (hasDoc)
-                    {
-                        if (config != null && config.SetInfo != null)
-                            config.SetInfo(new Documents.DocumentInfo(final.Rows[i].Id, jDoc["_rev"].ToString()), doc);
-
-                        this.Documents.Attach(doc, jDoc["_id"].Value<string>(), jDoc["_rev"].Value<string>());
-                    }
+                    config.SetInfo(new Documents.DocumentInfo(id,rev), foo);
                 }
 
-                return final;
+                if (track) this.documents.Attach(foo, id, rev);
+
+
+                return foo;
             }
-            //var stopWatch = new Stopwatch();
 
-            //stopWatch.Start();
+            public override bool CanConvert(Type objectType)
+            {
+                return typeof(T).IsAssignableFrom(objectType);
+            }
 
-            //var responseContent = session.Get(path, query.ToDictionary());
+            public override object ReadJson(JsonReader reader,
+                                            Type objectType,
+                                             object existingValue,
+                                             JsonSerializer serializer)
+            {
+                // Load JObject from stream
+                JObject jObject = JObject.Load(reader);
 
-            //stopWatch.Stop();
-            //Console.WriteLine("Get Request took: {0}", stopWatch.ElapsedMilliseconds);
+                // Create target object based on JObject
+                T target = Create(objectType, jObject);
 
-            //if (responseContent == null)
-            //    throw new Exception("Design view not found: " + path);
+                // Populate the object properties
+                serializer.Populate(jObject.CreateReader(), target);
 
-            //var result = JObject.Parse(responseContent);
+                return target;
+            }
 
-            //var final = responseContent.DeserializeObject<ViewResult<VALUE, DOC>>();
-
-            //final.Documents = new DOC[final.Rows.Length];
-            //final.Values = new VALUE[final.Rows.Length];
-
-            //for (var i = 0; i < final.Rows.Length; i++)
-            //{
-            //    var document = result["rows"][i]["doc"];
-            //    var value = result["rows"][i]["value"];
-
-            //    final.Documents[i] = document != null ? document.ToString().DeserializeObject<DOC>() : default(DOC);
-
-            //    var typedDocument = final.Documents[i];
-
-            //    if (typedDocument != null)
-            //    {
-            //        var config = Documents.GetConfiguration<DOC>();
-
-            //        if (config != null && config.SetInfo != null)
-            //            config.SetInfo(new Documents.DocumentInfo(final.Rows[i].Id, document["_rev"].ToString()), typedDocument);
-            //    }
-
-            //    final.Values[i] = value != null ? value.ToObject<VALUE>() : default(VALUE);
-
-            //    if (track)
-            //        this.Documents.Attach(final.Documents[i], result["rows"][i]["doc"]["_id"].ToString(), result["rows"][i]["doc"]["_rev"].ToString());
-            //}
-
-            //return final;
+            public override void WriteJson(JsonWriter writer,
+                                           object value,
+                                           JsonSerializer serializer)
+            {
+                throw new NotImplementedException();
+            }
         }
 
 
-
-        public ViewResult<object, DOC> ViewDocs<DOC>(string viewName, ViewQuery query = null, bool track = false)
+        public ViewResult<object, DOC> ViewDocs<DOC>(string viewName, ViewQuery query = null, bool track = false) where DOC : new()
         {
 
             query = query ?? new ViewQuery();
             query.IncludeDocs = true;
             return View<object, DOC>(viewName, query, track);
 
-            //query = query ?? new ViewQuery();
-            //query.IncludeDocs = true;
-
-            //string path = basePath + "/_view/" + viewName;
-
-            //using (var client = new WebClient())
-            //{
-            //    using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
-            //    {
-            //        using (var textReader = new StreamReader(stream, Encoding.UTF8))
-            //        {
-            //            using (var jsonReader = new JsonTextReader(textReader))
-            //            {
-            //                var serializer = new JsonSerializer();
-            //                serializer.NullValueHandling = NullValueHandling.Ignore;
-            //              return  serializer.Deserialize<ViewDocsResultRaw<object,DOC>>(jsonReader).ToViewResult();
-            //            }
-            //        }
-            //    }
-            //}
-
-
-
-            //var responseContent = session.Get(path, query.ToDictionary());
-
-            //    stopWatch.Stop();
-
-            //    Console.WriteLine("Get Request took: {0}", stopWatch.ElapsedMilliseconds);
-
-            //    if (responseContent == null)
-            //        throw new Exception("Design view not found: " + path);
-
-            //    stopWatch.Reset();
-            //    stopWatch.Start();
-            //    var resultRaw = responseContent.DeserializeObject<ViewDocsResultRaw<DOC>>();
-
-            //    Console.WriteLine("Deserialization Took: {0}", stopWatch.ElapsedMilliseconds);
-            //    return resultRaw;
         }
 
         public RESPONSE Update<DOC, RESPONSE>(string handler, DOC document, string key = null)
