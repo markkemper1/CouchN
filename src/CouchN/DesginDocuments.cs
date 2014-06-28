@@ -65,6 +65,9 @@ namespace CouchN
             var config = Documents.GetConfiguration<DOC>();
             using (var client = new WebClient())
             {
+                if (session.Credential != null)
+                    client.Credentials = session.Credential;
+
                 using (var stream = client.OpenRead(session.GetUri(path, query.ToDictionary())))
                 {
                     using (var textReader = new StreamReader(stream, Encoding.UTF8))
