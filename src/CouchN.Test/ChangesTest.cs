@@ -47,7 +47,7 @@ namespace CouchN.Test
 
                 var results = session.Changes.Poll(new ChangesQuery() { IncludeDocs = true});
 
-                Assert.That(results.Results.Length, Is.EqualTo(1));
+                Assert.That(results.Results.Length, Is.EqualTo(3));
 
             }
         }

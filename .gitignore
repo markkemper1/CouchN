@@ -11,3 +11,5 @@ _ReSharper*
 TestResults
 PortableGit
 Samples
+
+CouchN.sln.switchReferences.xml

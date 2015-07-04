@@ -4,10 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 using NUnit.Framework;
-using ServiceStack.Text;
 
 namespace CouchN.Test
 {
@@ -122,33 +119,33 @@ namespace CouchN.Test
             }
         }
 
-        [Test]
-        public void json_speed_test()
-        {
-            string json = File.ReadAllText("destinations.json");
-            var stopWatch = new Stopwatch();
+		//[Test]
+		//public void json_speed_test()
+		//{
+		//	string json = File.ReadAllText("destinations.json");
+		//	var stopWatch = new Stopwatch();
 
-            stopWatch.Start();
+		//	stopWatch.Start();
 
-            var x = json.DeserializeObject<DesginDocuments.ViewResult<object, Destination>>();
+		//	var x = json.DeserializeObject<DesginDocuments.ViewResult<object, Destination>>();
 
-            stopWatch.Stop();
+		//	stopWatch.Stop();
 
-            Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
-                x.Total);
+		//	Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
+		//		x.Total);
 
-            stopWatch.Reset();
+		//	stopWatch.Reset();
 
-            stopWatch.Start();
+		//	stopWatch.Start();
 
-            x = json.FromJson<DesginDocuments.ViewResult<object, Destination>>();
+		//	x = json.FromJson<DesginDocuments.ViewResult<object, Destination>>();
 
-            stopWatch.Stop();
+		//	stopWatch.Stop();
 
-            Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
-                x.Total);
+		//	Console.WriteLine("Total time taken: {0}ms to fetch {1} destinations", stopWatch.ElapsedMilliseconds,
+		//		x.Total);
 
-        }
+		//}
 
         class WebClientEx : WebClient
         {
